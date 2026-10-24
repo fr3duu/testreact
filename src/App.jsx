@@ -148,6 +148,7 @@ function App() {
 		assignToGroups: [],
 	})
 	const [activeQuiz, setActiveQuiz] = useState(null)
+	const [adminTab, setAdminTab] = useState('users')
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
@@ -248,8 +249,29 @@ function App() {
 		setScreen('quiz')
 	}
 
+	const markQuizCompleted = async (quizId) => {
+		if (!currentUser) {
+			return
+		}
+
+		try {
+			await apiRequest(`/quizzes/${quizId}/complete`, {
+				method: 'POST',
+				body: JSON.stringify({ userId: currentUser.id }),
+			})
+			await loadAssignedQuizzes(currentUser.id)
+		} catch (error) {
+			console.error(error)
+		}
+	}
+
 	const handleStartAssignedQuiz = (quiz) => {
+		if (quiz.completed) {
+			return
+		}
+
 		setActiveQuiz({
+			id: quiz.id,
 			name: quiz.name,
 			questions: Array.isArray(quiz.questions) ? quiz.questions : [],
 		})
@@ -274,6 +296,7 @@ function App() {
 					score: updatedScore,
 					date: new Date().toISOString(),
 					quizName: activeQuiz?.name || 'Quiz ogólny',
+					quizId: activeQuiz?.id || '',
 				}
 
 				try {
@@ -283,6 +306,9 @@ function App() {
 					})
 
 					setRecords(response.records || [])
+					if (activeQuiz?.id) {
+						await markQuizCompleted(activeQuiz.id)
+					}
 				} catch (error) {
 					console.error(error)
 				}
@@ -441,9 +467,18 @@ function App() {
 			})
 			setErrorMessage('')
 			await refreshAdminData()
-			if (currentUser) {
-				await loadAssignedQuizzes(currentUser.id)
-			}
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleToggleQuiz = async (quizId, enabled) => {
+		try {
+			await apiRequest(`/quizzes/${quizId}/toggle`, {
+				method: 'PUT',
+				body: JSON.stringify({ enabled }),
+			})
+			setQuizzes((prev) => prev.map((quiz) => (quiz.id === quizId ? { ...quiz, enabled } : quiz)))
 		} catch (error) {
 			setErrorMessage(error.message)
 		}
@@ -500,8 +535,10 @@ function App() {
 									type="button"
 									className="quiz-notice-btn"
 									onClick={() => handleStartAssignedQuiz(quiz)}
+									disabled={quiz.completed || quiz.enabled === false}
+									title={quiz.completed ? 'Quiz już ukończony' : quiz.enabled === false ? 'Quiz wyłączony' : `Rozpocznij ${quiz.name}`}
 								>
-									{quiz.name}
+									{quiz.completed ? `${quiz.name} (ukończony)` : quiz.name}
 								</button>
 							))}
 						</div>
@@ -517,7 +554,7 @@ function App() {
 					</button>
 					{canManageUsers && (
 						<button type="button" className="secondary-btn" onClick={() => setScreen('admin')}>
-							Zarządzaj użytkownikami
+							Zarządzaj
 						</button>
 					)}
 					<button
@@ -619,9 +656,7 @@ function App() {
 							<li key={`${record.name}-${record.date}-${index}`}>
 								<span className="place">#{index + 1}</span>
 								<span className="name">{record.name}</span>
-								<span className="score">
-									{record.score}/{record.quizName ? 'quiz' : QUESTIONS_PER_SESSION}
-								</span>
+								<span className="score">{record.score}/{QUESTIONS_PER_SESSION}</span>
 							</li>
 						))}
 					</ol>
@@ -640,228 +675,281 @@ function App() {
 		<div className="screen-wrap">
 			<div className="panel admin-panel">
 				<p className="label">Admin</p>
-				<h1>Zarządzanie użytkownikami i quizami</h1>
+				<h1>Zarządzanie</h1>
 
-				<section className="admin-section">
-					<h2>Dodaj użytkownika</h2>
-					<form onSubmit={handleCreateUser} className="admin-form">
-						<input
-							placeholder="Nazwa użytkownika"
-							value={newUserForm.username}
-							onChange={(event) => setNewUserForm((prev) => ({ ...prev, username: event.target.value }))}
-						/>
-						<input
-							type="password"
-							placeholder="Hasło"
-							value={newUserForm.password}
-							onChange={(event) => setNewUserForm((prev) => ({ ...prev, password: event.target.value }))}
-						/>
-						<select
-							value={newUserForm.role}
-							onChange={(event) => setNewUserForm((prev) => ({ ...prev, role: event.target.value }))}
-						>
-							<option value="user">Użytkownik</option>
-							<option value="admin">Admin</option>
-						</select>
-						<button type="submit" className="primary-btn">Dodaj użytkownika</button>
-					</form>
-				</section>
+				<div className="admin-tabs">
+					<button type="button" className={adminTab === 'users' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('users')}>
+						Użytkownicy i grupy
+					</button>
+					<button type="button" className={adminTab === 'quizzes' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('quizzes')}>
+						Quizy
+					</button>
+				</div>
 
-				<section className="admin-section">
-					<h2>Grupy</h2>
-					<form onSubmit={handleCreateGroup} className="admin-form compact-form">
-						<input
-							placeholder="Nazwa grupy"
-							value={newGroupName}
-							onChange={(event) => setNewGroupName(event.target.value)}
-						/>
-						<button type="submit" className="primary-btn">Dodaj grupę</button>
-					</form>
+				{adminTab === 'users' && (
+					<>
+						<section className="admin-section">
+							<h2>Dodaj użytkownika</h2>
+							<form onSubmit={handleCreateUser} className="admin-form">
+								<input
+									placeholder="Nazwa użytkownika"
+									value={newUserForm.username}
+									onChange={(event) => setNewUserForm((prev) => ({ ...prev, username: event.target.value }))}
+								/>
+								<input
+									type="password"
+									placeholder="Hasło"
+									value={newUserForm.password}
+									onChange={(event) => setNewUserForm((prev) => ({ ...prev, password: event.target.value }))}
+								/>
+								<select
+									value={newUserForm.role}
+									onChange={(event) => setNewUserForm((prev) => ({ ...prev, role: event.target.value }))}
+								>
+									<option value="user">Użytkownik</option>
+									<option value="admin">Admin</option>
+								</select>
+								<button type="submit" className="primary-btn">Dodaj użytkownika</button>
+							</form>
+						</section>
 
-					<div className="group-list">
-						{groups.map((group) => {
-							const groupMembers = users.filter((user) => group.memberIds.includes(user.id))
-							return (
-								<div key={group.id} className="group-card">
-									<div className="group-header">
-										<strong>{group.name}</strong>
-										<span>{groupMembers.length} użytkowników</span>
-									</div>
+						<section className="admin-section">
+							<h2>Grupy</h2>
+							<form onSubmit={handleCreateGroup} className="admin-form compact-form">
+								<input
+									placeholder="Nazwa grupy"
+									value={newGroupName}
+									onChange={(event) => setNewGroupName(event.target.value)}
+								/>
+								<button type="submit" className="primary-btn">Dodaj grupę</button>
+							</form>
 
-									<div className="group-members">
-										{groupMembers.length ? (
-											groupMembers.map((member) => (
-												<span key={member.id} className="member-badge">
-													{member.username}
-													<button type="button" onClick={() => handleRemoveUserFromGroup(group.id, member.id)}>
-														×
+							<div className="group-list">
+								{groups.length === 0 ? (
+									<p className="empty-state">Brak grup.</p>
+								) : (
+									groups.map((group) => {
+										const groupMembers = users.filter((user) => group.memberIds.includes(user.id))
+										return (
+											<div key={group.id} className="group-card">
+												<div className="group-header">
+													<strong>{group.name}</strong>
+													<span>{groupMembers.length} użytkowników</span>
+												</div>
+
+												<div className="group-members">
+													{groupMembers.length ? (
+														groupMembers.map((member) => (
+															<span key={member.id} className="member-badge">
+																{member.username}
+																<button type="button" onClick={() => handleRemoveUserFromGroup(group.id, member.id)}>
+																	×
+																</button>
+															</span>
+														))
+													) : (
+														<span className="muted">Brak użytkowników</span>
+													)}
+												</div>
+
+												<div className="inline-form">
+													<select
+														value={groupUserAssignments[group.id] || ''}
+														onChange={(event) =>
+															setGroupUserAssignments((prev) => ({ ...prev, [group.id]: event.target.value }))
+														}
+													>
+														<option value="">Wybierz użytkownika</option>
+														{users.map((user) => (
+															<option key={user.id} value={user.id}>
+																{user.username}
+															</option>
+														))}
+													</select>
+													<button
+														type="button"
+														className="secondary-btn small"
+														onClick={() => {
+															const userId = groupUserAssignments[group.id]
+															if (userId) {
+																handleAddUserToGroup(group.id, userId)
+															}
+														}}
+													>
+														Dodaj
 													</button>
-												</span>
-											))
-										) : (
-											<span className="muted">Brak użytkowników</span>
-										)}
-									</div>
+												</div>
+											</div>
+										)
+									})
+								)}
+							</div>
+						</section>
 
-									<div className="inline-form">
-										<select
-											value={groupUserAssignments[group.id] || ''}
-											onChange={(event) =>
-												setGroupUserAssignments((prev) => ({ ...prev, [group.id]: event.target.value }))
-											}
-										>
-											<option value="">Wybierz użytkownika</option>
-											{users.map((user) => (
-												<option key={user.id} value={user.id}>
-													{user.username}
-												</option>
-											))}
-										</select>
-										<button
-											type="button"
-											className="secondary-btn small"
-											onClick={() => {
-												const userId = groupUserAssignments[group.id]
-												if (userId) {
-													handleAddUserToGroup(group.id, userId)
-												}
-											}}
-										>
-											Dodaj do grupy
-										</button>
-									</div>
-								</div>
-							)
-						})}
-					</div>
-				</section>
-
-				<section className="admin-section">
-					<h2>Nowy quiz</h2>
-					<form onSubmit={handleCreateQuiz} className="admin-form">
-						<input
-							placeholder="Nazwa quizu"
-							value={quizForm.name}
-							onChange={(event) => setQuizForm((prev) => ({ ...prev, name: event.target.value }))}
-						/>
-
-						<label className="input-label left-align">Ilość pytań</label>
-						<input
-							type="number"
-							min="1"
-							max={allQuestions.length}
-							value={quizForm.count}
-							onChange={(event) => setQuizForm((prev) => ({ ...prev, count: Number(event.target.value) || 1 }))}
-						/>
-
-						<div className="question-selection">
-							{allQuestions.map((question, index) => (
-								<label key={`${question.question}-${index}`} className="checkbox-row">
-									<input
-										type="checkbox"
-										checked={quizForm.selectedQuestionIds.includes(index)}
-										onChange={() => {
-											setQuizForm((prev) => {
-												const alreadySelected = prev.selectedQuestionIds.includes(index)
-												return {
-													...prev,
-													selectedQuestionIds: alreadySelected
-														? prev.selectedQuestionIds.filter((item) => item !== index)
-														: [...prev.selectedQuestionIds, index],
-												}
-											})
-										}}
-									/>
-									<span>{question.question}</span>
-								</label>
-							))}
-						</div>
-
-						<div className="assignment-grid">
-							<div>
-								<h3>Użytkownicy</h3>
+						<section className="admin-section">
+							<h2>Użytkownicy</h2>
+							<div className="admin-user-list">
 								{users.map((user) => (
-									<label key={user.id} className="checkbox-row small-row">
-										<input
-											type="checkbox"
-											checked={quizForm.assignToUsers.includes(user.id)}
-											onChange={() =>
-												setQuizForm((prev) => ({
-													...prev,
-													assignToUsers: prev.assignToUsers.includes(user.id)
-														? prev.assignToUsers.filter((id) => id !== user.id)
-														: [...prev.assignToUsers, user.id],
-												}))
-											}
-										/>
-										<span>{user.username}</span>
-									</label>
+									<div key={user.id} className="admin-user-row">
+										<div>
+											<strong>{user.username}</strong>
+											<span>({user.role})</span>
+										</div>
+										<div className="admin-actions">
+											<button
+												type="button"
+												className="secondary-btn small"
+												onClick={() => setPasswordForm({ userId: user.id, password: '' })}
+											>
+												Zmień hasło
+											</button>
+											<button type="button" className="danger-btn" onClick={() => handleDeleteUser(user.id)}>
+												Usuń
+											</button>
+										</div>
+									</div>
 								))}
 							</div>
 
-							<div>
-								<h3>Grupy</h3>
-								{groups.map((group) => (
-									<label key={group.id} className="checkbox-row small-row">
-										<input
-											type="checkbox"
-											checked={quizForm.assignToGroups.includes(group.id)}
-											onChange={() =>
-												setQuizForm((prev) => ({
-													...prev,
-													assignToGroups: prev.assignToGroups.includes(group.id)
-														? prev.assignToGroups.filter((id) => id !== group.id)
-														: [...prev.assignToGroups, group.id],
-												}))
-											}
-										/>
-										<span>{group.name}</span>
-									</label>
-								))}
-							</div>
-						</div>
+							{passwordForm.userId && (
+								<form onSubmit={handlePasswordChange} className="password-form">
+									<input
+										type="password"
+										placeholder="Nowe hasło"
+										value={passwordForm.password}
+										onChange={(event) => setPasswordForm((prev) => ({ ...prev, password: event.target.value }))}
+									/>
+									<button type="submit" className="primary-btn">Zapisz hasło</button>
+								</form>
+							)}
+						</section>
+					</>
+				)}
 
-						<button type="submit" className="primary-btn">Utwórz i przypisz quiz</button>
-					</form>
-				</section>
+				{adminTab === 'quizzes' && (
+					<>
+						<section className="admin-section">
+							<h2>Utwórz nowy quiz</h2>
+							<form onSubmit={handleCreateQuiz} className="admin-form">
+								<input
+									placeholder="Nazwa quizu"
+									value={quizForm.name}
+									onChange={(event) => setQuizForm((prev) => ({ ...prev, name: event.target.value }))}
+								/>
 
-				<section className="admin-section">
-					<h2>Użytkownicy</h2>
-					<div className="admin-user-list">
-						{users.map((user) => (
-							<div key={user.id} className="admin-user-row">
-								<div>
-									<strong>{user.username}</strong>
-									<span>({user.role})</span>
+								<label className="input-label left-align">Ilość pytań</label>
+								<input
+									type="number"
+									min="1"
+									max={allQuestions.length}
+									value={quizForm.count}
+									onChange={(event) => setQuizForm((prev) => ({ ...prev, count: Number(event.target.value) || 1 }))}
+								/>
+
+								<div className="question-selection">
+									{allQuestions.map((question, index) => (
+										<label key={`${question.question}-${index}`} className="checkbox-row">
+											<input
+												type="checkbox"
+												checked={quizForm.selectedQuestionIds.includes(index)}
+												onChange={() => {
+													setQuizForm((prev) => {
+														const alreadySelected = prev.selectedQuestionIds.includes(index)
+														return {
+															...prev,
+															selectedQuestionIds: alreadySelected
+																? prev.selectedQuestionIds.filter((item) => item !== index)
+																: [...prev.selectedQuestionIds, index],
+														}
+													})
+												}}
+											/>
+											<span>{question.question}</span>
+										</label>
+									))}
 								</div>
-								<div className="admin-actions">
-									<button
-										type="button"
-										className="secondary-btn small"
-										onClick={() => setPasswordForm({ userId: user.id, password: '' })}
-									>
-										Zmień hasło
-									</button>
-									<button type="button" className="danger-btn" onClick={() => handleDeleteUser(user.id)}>
-										Usuń
-									</button>
-								</div>
-							</div>
-						))}
-					</div>
 
-					{passwordForm.userId && (
-						<form onSubmit={handlePasswordChange} className="password-form">
-							<input
-								type="password"
-								placeholder="Nowe hasło"
-								value={passwordForm.password}
-								onChange={(event) => setPasswordForm((prev) => ({ ...prev, password: event.target.value }))}
-							/>
-							<button type="submit" className="primary-btn">Zapisz hasło</button>
-						</form>
-					)}
-				</section>
+								<div className="assignment-grid">
+									<div>
+										<h3>Użytkownicy</h3>
+										{users.map((user) => (
+											<label key={user.id} className="checkbox-row small-row">
+												<input
+													type="checkbox"
+													checked={quizForm.assignToUsers.includes(user.id)}
+													onChange={() =>
+														setQuizForm((prev) => ({
+															...prev,
+															assignToUsers: prev.assignToUsers.includes(user.id)
+																? prev.assignToUsers.filter((id) => id !== user.id)
+																: [...prev.assignToUsers, user.id],
+														}))
+													}
+												/>
+												<span>{user.username}</span>
+											</label>
+										))}
+									</div>
+
+									<div>
+										<h3>Grupy</h3>
+										{groups.map((group) => (
+											<label key={group.id} className="checkbox-row small-row">
+												<input
+													type="checkbox"
+													checked={quizForm.assignToGroups.includes(group.id)}
+													onChange={() =>
+														setQuizForm((prev) => ({
+															...prev,
+															assignToGroups: prev.assignToGroups.includes(group.id)
+																? prev.assignToGroups.filter((id) => id !== group.id)
+																: [...prev.assignToGroups, group.id],
+														}))
+													}
+												/>
+												<span>{group.name}</span>
+											</label>
+										))}
+									</div>
+								</div>
+
+								<button type="submit" className="primary-btn">Utwórz i przypisz quiz</button>
+							</form>
+						</section>
+
+						<section className="admin-section">
+							<h2>Zarządzanie istniejącymi quizami</h2>
+							{quizzes.length === 0 ? (
+								<p className="empty-state">Brak utworzonych quizów.</p>
+							) : (
+								<div className="quiz-management-list">
+									{quizzes.map((quiz) => (
+										<div key={quiz.id} className="quiz-card">
+											<div className="quiz-card-header">
+												<strong>{quiz.name}</strong>
+												<span className={quiz.enabled === false ? 'status-badge disabled' : 'status-badge enabled'}>
+													{quiz.enabled === false ? 'Wyłączone' : 'Włączone'}
+												</span>
+											</div>
+
+											<p>{quiz.questions?.length || 0} pytań</p>
+
+											<div className="quiz-card-actions">
+												<button
+													type="button"
+													className={quiz.enabled === false ? 'secondary-btn small' : 'danger-btn small'}
+													onClick={() => handleToggleQuiz(quiz.id, quiz.enabled === false)}
+												>
+													{quiz.enabled === false ? 'Włącz' : 'Wyłącz'}
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</section>
+					</>
+				)}
 
 				{errorMessage && <p className="error-text">{errorMessage}</p>}
 

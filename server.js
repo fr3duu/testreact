@@ -70,9 +70,29 @@ app.get('/api/users', async (_req, res) => {
 
 app.get('/api/users/:id/quizzes', async (req, res) => {
   const { id } = req.params
+  const groups = await readJson(groupsFile, defaultGroups)
   const quizzes = await readJson(quizzesFile, defaultQuizzes)
-  const assignedQuizzes = quizzes.filter((quiz) => quiz.assignedToUsers.includes(id))
-  return res.json({ quizzes: assignedQuizzes })
+  const groupMemberIds = groups.flatMap((group) => group.memberIds)
+
+  const assignedQuizzes = quizzes.filter((quiz) => {
+    const isDirect = Array.isArray(quiz.assignedToUsers) && quiz.assignedToUsers.includes(id)
+    const isInGroup = Array.isArray(quiz.assignedToGroups)
+      ? quiz.assignedToGroups.some((groupId) => {
+          const group = groups.find((entry) => entry.id === groupId)
+          return group ? group.memberIds.includes(id) : false
+        })
+      : groupMemberIds.includes(id)
+
+    return isDirect || isInGroup
+  })
+
+  const safeQuizzes = assignedQuizzes.map((quiz) => ({
+    ...quiz,
+    completed: Array.isArray(quiz.completedBy) ? quiz.completedBy.includes(id) : false,
+    enabled: quiz.enabled !== false,
+  }))
+
+  return res.json({ quizzes: safeQuizzes })
 })
 
 app.post('/api/login', async (req, res) => {
@@ -238,24 +258,43 @@ app.post('/api/quizzes', async (req, res) => {
     return res.status(400).json({ message: 'Quiz musi zawierać przynajmniej jedno pytanie' })
   }
 
+  const normalizedQuestions = questions.map((question) => ({
+    question: question.question,
+    options: Array.isArray(question.options) ? question.options : [],
+    correctAnswer: Number(question.correctAnswer),
+  }))
+
+  const quizzes = await readJson(quizzesFile, defaultQuizzes)
   const newQuiz = {
     id: `quiz-${Date.now()}`,
     name: String(name).trim(),
-    questions: questions.map((question) => ({
-      question: question.question,
-      options: Array.isArray(question.options) ? question.options : [],
-      correctAnswer: Number(question.correctAnswer),
-    })),
+    questions: normalizedQuestions,
     assignedToUsers: [],
     assignedToGroups: [],
+    completedBy: [],
+    enabled: true,
     createdAt: new Date().toISOString(),
   }
 
-  const quizzes = await readJson(quizzesFile, defaultQuizzes)
   quizzes.push(newQuiz)
   await writeJson(quizzesFile, quizzes)
 
   return res.status(201).json({ quiz: newQuiz })
+})
+
+app.put('/api/quizzes/:id/toggle', async (req, res) => {
+  const { id } = req.params
+  const { enabled } = req.body || {}
+  const quizzes = await readJson(quizzesFile, defaultQuizzes)
+  const quiz = quizzes.find((entry) => entry.id === id)
+
+  if (!quiz) {
+    return res.status(404).json({ message: 'Quiz nie istnieje' })
+  }
+
+  quiz.enabled = enabled !== false
+  await writeJson(quizzesFile, quizzes)
+  return res.json({ quiz })
 })
 
 app.post('/api/quizzes/assign', async (req, res) => {
@@ -268,22 +307,57 @@ app.post('/api/quizzes/assign', async (req, res) => {
     return res.status(404).json({ message: 'Quiz nie istnieje' })
   }
 
-  const assignedUserIds = new Set(quiz.assignedToUsers.map(String))
+  const nextAssignment = new Set((quiz.assignedToUsers || []).map(String))
   for (const userId of userIds) {
-    assignedUserIds.add(String(userId))
+    nextAssignment.add(String(userId))
+  }
+
+  const groupAssignments = new Set((quiz.assignedToGroups || []).map(String))
+  for (const groupId of groupIds) {
+    groupAssignments.add(String(groupId))
   }
 
   for (const groupId of groupIds) {
     const group = groups.find((entry) => entry.id === groupId)
     if (group) {
-      group.memberIds.forEach((userId) => assignedUserIds.add(String(userId)))
+      group.memberIds.forEach((userId) => nextAssignment.add(String(userId)))
     }
   }
 
-  quiz.assignedToUsers = [...assignedUserIds]
-  quiz.assignedToGroups = [...new Set([...quiz.assignedToGroups, ...groupIds.map(String)])]
+  quiz.assignedToUsers = [...nextAssignment]
+  quiz.assignedToGroups = [...groupAssignments]
+  quiz.enabled = true
 
   await writeJson(quizzesFile, quizzes)
+  return res.json({ quiz })
+})
+
+app.post('/api/quizzes/:id/complete', async (req, res) => {
+  const { id } = req.params
+  const { userId } = req.body || {}
+  const quizzes = await readJson(quizzesFile, defaultQuizzes)
+  const quiz = quizzes.find((entry) => entry.id === id)
+
+  if (!quiz) {
+    return res.status(404).json({ message: 'Quiz nie istnieje' })
+  }
+
+  const userIdentifier = String(userId)
+  if (!userIdentifier) {
+    return res.status(400).json({ message: 'Brak identyfikatora użytkownika' })
+  }
+
+  if (!Array.isArray(quiz.completedBy)) {
+    quiz.completedBy = []
+  }
+
+  if (quiz.completedBy.includes(userIdentifier)) {
+    return res.status(409).json({ message: 'Użytkownik już ukończył ten quiz' })
+  }
+
+  quiz.completedBy.push(userIdentifier)
+  await writeJson(quizzesFile, quizzes)
+
   return res.json({ quiz })
 })
 
@@ -294,7 +368,7 @@ app.get('/api/records', async (_req, res) => {
 })
 
 app.post('/api/records', async (req, res) => {
-  const { name, score, date, quizName } = req.body || {}
+  const { name, score, date, quizName, quizId } = req.body || {}
 
   if (!name || score === undefined) {
     return res.status(400).json({ message: 'Brakuje danych wyniku' })
@@ -307,6 +381,7 @@ app.post('/api/records', async (req, res) => {
     score: Number(score),
     date: date || new Date().toISOString(),
     quizName: quizName ? String(quizName) : 'Quiz ogólny',
+    quizId: quizId ? String(quizId) : '',
   }
 
   records.push(nextEntry)
