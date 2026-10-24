@@ -120,6 +120,13 @@ const createQuizSession = () => {
 	return shuffled.slice(0, QUESTIONS_PER_SESSION)
 }
 
+const formatSeconds = (seconds) => {
+	const safe = Number(seconds) || 0
+	const minutes = Math.floor(safe / 60)
+	const remaining = safe % 60
+	return `${minutes}:${String(remaining).padStart(2, '0')}`
+}
+
 function App() {
 	const [screen, setScreen] = useState('login')
 	const [username, setUsername] = useState('')
@@ -134,6 +141,7 @@ function App() {
 	const [currentIndex, setCurrentIndex] = useState(0)
 	const [selectedAnswer, setSelectedAnswer] = useState(null)
 	const [score, setScore] = useState(0)
+	const [quizStartTime, setQuizStartTime] = useState(null)
 	const [loading, setLoading] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [newUserForm, setNewUserForm] = useState({ username: '', password: '', role: 'user' })
@@ -149,10 +157,11 @@ function App() {
 	})
 	const [activeQuiz, setActiveQuiz] = useState(null)
 	const [adminTab, setAdminTab] = useState('users')
+	const [recordTab, setRecordTab] = useState('all')
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
-	const topRecords = useMemo(() => [...records].sort((a, b) => b.score - a.score).slice(0, 10), [records])
+	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
 
 	const refreshAdminData = async () => {
 		try {
@@ -209,6 +218,7 @@ function App() {
 			setCurrentIndex(0)
 			setSelectedAnswer(null)
 			setScore(0)
+			setQuizStartTime(Date.now())
 			return
 		}
 
@@ -216,6 +226,7 @@ function App() {
 		setCurrentIndex(0)
 		setSelectedAnswer(null)
 		setScore(0)
+		setQuizStartTime(Date.now())
 	}, [screen, activeQuiz])
 
 	const handleLogin = async (event) => {
@@ -246,6 +257,7 @@ function App() {
 		setCurrentIndex(0)
 		setSelectedAnswer(null)
 		setScore(0)
+		setQuizStartTime(Date.now())
 		setScreen('quiz')
 	}
 
@@ -266,7 +278,7 @@ function App() {
 	}
 
 	const handleStartAssignedQuiz = (quiz) => {
-		if (quiz.completed) {
+		if (quiz.completed || quiz.enabled === false) {
 			return
 		}
 
@@ -291,12 +303,15 @@ function App() {
 			const nextIndex = currentIndex + 1
 
 			if (nextIndex >= questionList.length) {
+				const timeSeconds = quizStartTime ? Math.max(1, Math.floor((Date.now() - quizStartTime) / 1000)) : 0
 				const result = {
 					name: currentUser?.username || 'Gracz',
 					score: updatedScore,
 					date: new Date().toISOString(),
 					quizName: activeQuiz?.name || 'Quiz ogólny',
 					quizId: activeQuiz?.id || '',
+					timeSeconds,
+					showInLeaderboard: true,
 				}
 
 				try {
@@ -484,6 +499,33 @@ function App() {
 		}
 	}
 
+	const handleRecordVisibilityToggle = async (recordId, showInLeaderboard) => {
+		try {
+			await apiRequest(`/records/${recordId}/visibility`, {
+				method: 'PUT',
+				body: JSON.stringify({ showInLeaderboard }),
+			})
+
+			setRecords((prev) => prev.map((record) => (record.id === recordId ? { ...record, showInLeaderboard } : record)))
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleQuizLeaderboardToggle = async (quizId, showInLeaderboard) => {
+		try {
+			await apiRequest(`/records/quiz/${quizId}/visibility`, {
+				method: 'PUT',
+				body: JSON.stringify({ showInLeaderboard }),
+			})
+
+			setRecords((prev) => prev.map((record) => (record.quizId === quizId ? { ...record, showInLeaderboard } : record)))
+			await refreshAdminData()
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
@@ -629,6 +671,9 @@ function App() {
 				<p className="result-score">
 					Twój wynik: <strong>{score}/{questionList.length || QUESTIONS_PER_SESSION}</strong>
 				</p>
+				<p className="result-score small-time">
+					Czas: <strong>{formatSeconds(quizStartTime ? Math.floor((Date.now() - quizStartTime) / 1000) : 0)}</strong>
+				</p>
 
 				<div className="button-group">
 					<button type="button" className="primary-btn" onClick={handleStartQuiz}>
@@ -648,18 +693,55 @@ function App() {
 				<p className="label">Najlepsze wyniki</p>
 				<h1>Rekordy</h1>
 
-				{topRecords.length === 0 ? (
-					<p className="empty-state">Brak zapisanych wyników.</p>
+				<div className="records-tabs">
+					<button type="button" className={recordTab === 'all' ? 'tab-btn active' : 'tab-btn'} onClick={() => setRecordTab('all')}>
+						Główny ranking
+					</button>
+					{quizzes.map((quiz) => (
+						<button
+							key={quiz.id}
+							type="button"
+							className={recordTab === quiz.id ? 'tab-btn active' : 'tab-btn'}
+							onClick={() => setRecordTab(quiz.id)}
+						>
+							{quiz.name}
+						</button>
+					))}
+				</div>
+
+				{recordTab === 'all' ? (
+					topRecords.length === 0 ? (
+						<p className="empty-state">Brak zapisanych wyników.</p>
+					) : (
+						<ol className="records-list">
+							{topRecords.map((record, index) => (
+								<li key={`${record.name}-${record.date}-${index}`}>
+									<span className="place">#{index + 1}</span>
+									<span className="name">{record.name}</span>
+									<span className="score">{record.score}/{QUESTIONS_PER_SESSION} · {formatSeconds(record.timeSeconds)}</span>
+								</li>
+							))}
+						</ol>
+					)
 				) : (
-					<ol className="records-list">
-						{topRecords.map((record, index) => (
-							<li key={`${record.name}-${record.date}-${index}`}>
-								<span className="place">#{index + 1}</span>
-								<span className="name">{record.name}</span>
-								<span className="score">{record.score}/{QUESTIONS_PER_SESSION}</span>
-							</li>
-						))}
-					</ol>
+					(() => {
+						const selectedQuizRecords = records.filter((record) => record.quizId === recordTab && record.showInLeaderboard !== false)
+						return selectedQuizRecords.length === 0 ? (
+							<p className="empty-state">Brak wyników dla tego quizu.</p>
+						) : (
+							<ol className="records-list">
+								{selectedQuizRecords
+									.sort((a, b) => b.score - a.score)
+									.map((record, index) => (
+										<li key={`${record.name}-${record.date}-${index}`}>
+											<span className="place">#{index + 1}</span>
+											<span className="name">{record.name}</span>
+											<span className="score">{record.score}/{QUESTIONS_PER_SESSION} · {formatSeconds(record.timeSeconds)}</span>
+										</li>
+									))}
+							</ol>
+						)
+					})()
 				)}
 
 				<div className="button-group">
@@ -683,6 +765,9 @@ function App() {
 					</button>
 					<button type="button" className={adminTab === 'quizzes' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('quizzes')}>
 						Quizy
+					</button>
+					<button type="button" className={adminTab === 'records' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('records')}>
+						Rekordy
 					</button>
 				</div>
 
@@ -943,6 +1028,67 @@ function App() {
 													{quiz.enabled === false ? 'Włącz' : 'Wyłącz'}
 												</button>
 											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</section>
+					</>
+				)}
+
+				{adminTab === 'records' && (
+					<>
+						<section className="admin-section">
+							<h2>Rekordy i rankingi</h2>
+							{quizzes.length === 0 ? (
+								<p className="empty-state">Brak quizów do zarządzania rankingiem.</p>
+							) : (
+								<div className="record-toggle-list">
+									{quizzes.map((quiz) => {
+										const isVisible = records.some((record) => record.quizId === quiz.id && record.showInLeaderboard !== false)
+										return (
+											<div key={quiz.id} className="record-toggle-row">
+												<div>
+													<strong>{quiz.name}</strong>
+													<p>{isVisible ? 'Widoczne w zakładce rekordów' : 'Ukryte w zakładce rekordów'}</p>
+												</div>
+												<button
+													type="button"
+													className={isVisible ? 'secondary-btn small' : 'primary-btn small'}
+													onClick={() => handleQuizLeaderboardToggle(quiz.id, !isVisible)}
+												>
+													{isVisible ? 'Ukryj ranking' : 'Pokaż ranking'}
+												</button>
+											</div>
+										)
+									})}
+								</div>
+							)}
+						</section>
+
+						<section className="admin-section">
+							<h2>Wszystkie ręczne rekordy</h2>
+							{records.length === 0 ? (
+								<p className="empty-state">Brak zapisanych rekordów.</p>
+							) : (
+								<div className="record-table">
+									{records.map((record) => (
+										<div key={record.id} className="record-row">
+											<div>
+												<strong>{record.name}</strong>
+												<span>{record.quizName || 'Quiz ogólny'}</span>
+											</div>
+											<div>
+												<span>{record.score} pkt</span>
+												<span>{formatSeconds(record.timeSeconds)}</span>
+											</div>
+											<button
+												type="button"
+												className={record.showInLeaderboard === false ? 'secondary-btn small' : 'primary-btn small'}
+												onClick={() => handleRecordVisibilityToggle(record.id, record.showInLeaderboard === false)}
+											>
+												{record.showInLeaderboard === false ? 'Pokaż' : 'Ukryj'}
+											</button>
 										</div>
 									))}
 								</div>

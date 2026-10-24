@@ -72,18 +72,17 @@ app.get('/api/users/:id/quizzes', async (req, res) => {
   const { id } = req.params
   const groups = await readJson(groupsFile, defaultGroups)
   const quizzes = await readJson(quizzesFile, defaultQuizzes)
-  const groupMemberIds = groups.flatMap((group) => group.memberIds)
 
   const assignedQuizzes = quizzes.filter((quiz) => {
-    const isDirect = Array.isArray(quiz.assignedToUsers) && quiz.assignedToUsers.includes(id)
-    const isInGroup = Array.isArray(quiz.assignedToGroups)
+    const directAssign = Array.isArray(quiz.assignedToUsers) && quiz.assignedToUsers.includes(id)
+    const groupAssign = Array.isArray(quiz.assignedToGroups)
       ? quiz.assignedToGroups.some((groupId) => {
           const group = groups.find((entry) => entry.id === groupId)
           return group ? group.memberIds.includes(id) : false
         })
-      : groupMemberIds.includes(id)
+      : false
 
-    return isDirect || isInGroup
+    return directAssign || groupAssign
   })
 
   const safeQuizzes = assignedQuizzes.map((quiz) => ({
@@ -363,12 +362,12 @@ app.post('/api/quizzes/:id/complete', async (req, res) => {
 
 app.get('/api/records', async (_req, res) => {
   const records = await readJson(recordsFile, defaultRecords)
-  const sorted = [...records].sort((a, b) => b.score - a.score).slice(0, 10)
+  const sorted = [...records].sort((a, b) => Number(b.score) - Number(a.score)).slice(0, 30)
   return res.json({ records: sorted })
 })
 
 app.post('/api/records', async (req, res) => {
-  const { name, score, date, quizName, quizId } = req.body || {}
+  const { name, score, date, quizName, quizId, timeSeconds, showInLeaderboard } = req.body || {}
 
   if (!name || score === undefined) {
     return res.status(400).json({ message: 'Brakuje danych wyniku' })
@@ -382,16 +381,50 @@ app.post('/api/records', async (req, res) => {
     date: date || new Date().toISOString(),
     quizName: quizName ? String(quizName) : 'Quiz ogólny',
     quizId: quizId ? String(quizId) : '',
+    timeSeconds: Number.isFinite(Number(timeSeconds)) ? Number(timeSeconds) : 0,
+    showInLeaderboard: showInLeaderboard !== false,
   }
 
   records.push(nextEntry)
   const sortedRecords = [...records]
     .sort((a, b) => Number(b.score) - Number(a.score))
-    .slice(0, 10)
+    .slice(0, 30)
 
   await writeJson(recordsFile, sortedRecords)
 
   return res.status(201).json({ record: nextEntry, records: sortedRecords })
+})
+
+app.put('/api/records/:recordId/visibility', async (req, res) => {
+  const { recordId } = req.params
+  const { showInLeaderboard } = req.body || {}
+  const records = await readJson(recordsFile, defaultRecords)
+  const item = records.find((entry) => entry.id === recordId)
+
+  if (!item) {
+    return res.status(404).json({ message: 'Rekord nie istnieje' })
+  }
+
+  item.showInLeaderboard = showInLeaderboard !== false
+  await writeJson(recordsFile, records)
+  return res.json({ record: item })
+})
+
+app.put('/api/records/quiz/:quizId/visibility', async (req, res) => {
+  const { quizId } = req.params
+  const { showInLeaderboard } = req.body || {}
+  const records = await readJson(recordsFile, defaultRecords)
+
+  let updated = 0
+  for (const record of records) {
+    if (record.quizId === quizId) {
+      record.showInLeaderboard = showInLeaderboard !== false
+      updated += 1
+    }
+  }
+
+  await writeJson(recordsFile, records)
+  return res.json({ updated, records })
 })
 
 app.use(express.static(distDir))

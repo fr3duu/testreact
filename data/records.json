@@ -1,5 +1,12 @@
 [
   {
+    "id": "record-1792857358775",
+    "name": "demo",
+    "score": 5,
+    "date": "2026-10-24T15:55:58.756Z",
+    "quizName": "Quiz ogólny"
+  },
+  {
     "id": "record-1792853167207",
     "name": "demo",
     "score": 4,
@@ -23,5 +30,12 @@
     "name": "asd",
     "score": 1,
     "date": "2026-10-24T14:45:30.077Z"
+  },
+  {
+    "id": "record-1792857400172",
+    "name": "asd",
+    "score": 1,
+    "date": "2026-10-24T15:56:40.170Z",
+    "quizName": "temat quizu"
   }
 ]
