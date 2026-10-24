@@ -1041,59 +1041,35 @@ function App() {
 				{adminTab === 'records' && (
 					<>
 						<section className="admin-section">
-							<h2>Rekordy i rankingi</h2>
+							<h2>Rankingi ręcznych quizów</h2>
 							{quizzes.length === 0 ? (
 								<p className="empty-state">Brak quizów do zarządzania rankingiem.</p>
 							) : (
 								<div className="record-toggle-list">
 									{quizzes.map((quiz) => {
-										const isVisible = records.some((record) => record.quizId === quiz.id && record.showInLeaderboard !== false)
+										const totalQuizRecords = records.filter((record) => record.quizId === quiz.id)
+										const hasVisibleRecords = totalQuizRecords.some((record) => record.showInLeaderboard !== false)
+
 										return (
 											<div key={quiz.id} className="record-toggle-row">
 												<div>
 													<strong>{quiz.name}</strong>
 													<p>Aktywny: {quiz.enabled === false ? 'Nie' : 'Tak'}</p>
-													<p>Ranking: {isVisible ? 'Widoczny' : 'Ukryty'}</p>
+													<p>
+														Ranking: {hasVisibleRecords ? 'Widoczny' : 'Ukryty'}
+														{totalQuizRecords.length > 0 ? ` (${totalQuizRecords.length} wyników)` : ' (brak wyników)'}
+													</p>
 												</div>
 												<button
 													type="button"
-													className={isVisible ? 'secondary-btn small' : 'primary-btn small'}
-													onClick={() => handleQuizLeaderboardToggle(quiz.id, !isVisible)}
+													className={hasVisibleRecords ? 'secondary-btn small' : 'primary-btn small'}
+													onClick={() => handleQuizLeaderboardToggle(quiz.id, !hasVisibleRecords)}
 												>
-													{isVisible ? 'Ukryj ranking' : 'Pokaż ranking'}
+													{hasVisibleRecords ? 'Ukryj ranking' : 'Pokaż ranking'}
 												</button>
 											</div>
 										)
 									})}
-								</div>
-							)}
-						</section>
-
-						<section className="admin-section">
-							<h2>Wszystkie ręczne rekordy</h2>
-							{records.length === 0 ? (
-								<p className="empty-state">Brak zapisanych rekordów.</p>
-							) : (
-								<div className="record-table">
-									{records.map((record) => (
-										<div key={record.id} className="record-row">
-											<div>
-												<strong>{record.name}</strong>
-												<span>{record.quizName || 'Quiz ogólny'}</span>
-											</div>
-											<div>
-												<span>{record.score} pkt</span>
-												<span>{formatSeconds(record.timeSeconds)}</span>
-											</div>
-											<button
-												type="button"
-												className={record.showInLeaderboard === false ? 'secondary-btn small' : 'primary-btn small'}
-												onClick={() => handleRecordVisibilityToggle(record.id, record.showInLeaderboard === false)}
-											>
-												{record.showInLeaderboard === false ? 'Pokaż' : 'Ukryj'}
-											</button>
-										</div>
-									))}
 								</div>
 							)}
 						</section>

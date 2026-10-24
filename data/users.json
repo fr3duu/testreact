@@ -2,13 +2,13 @@
   {
     "id": "admin-1",
     "username": "admin",
-    "password": "admin123",
+    "password": "admin",
     "role": "admin"
   },
   {
     "id": "user-1",
     "username": "demo",
-    "password": "demo123",
+    "password": "demo",
     "role": "user"
   },
   {
