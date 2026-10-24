@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { apiRequest } from './api'
 import './App.css'
 
 const QUESTIONS_PER_SESSION = 10
-const STORAGE_KEY = 'quantum-quiz-records'
 
 const allQuestions = [
 	{
@@ -120,44 +120,82 @@ const createQuizSession = () => {
 	return shuffled.slice(0, QUESTIONS_PER_SESSION)
 }
 
-const getRecords = () => {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY)
-		return stored ? JSON.parse(stored) : []
-	} catch {
-		return []
-	}
-}
-
 function App() {
-	const [screen, setScreen] = useState('start')
-	const [playerName, setPlayerName] = useState('')
-	const [questions, setQuestions] = useState([])
+	const [screen, setScreen] = useState('login')
+	const [username, setUsername] = useState('')
+	const [password, setPassword] = useState('')
+	const [currentUser, setCurrentUser] = useState(null)
+	const [users, setUsers] = useState([])
+	const [records, setRecords] = useState([])
+	const [questionList, setQuestionList] = useState([])
 	const [currentIndex, setCurrentIndex] = useState(0)
 	const [selectedAnswer, setSelectedAnswer] = useState(null)
 	const [score, setScore] = useState(0)
-	const [records, setRecords] = useState(() => getRecords())
+	const [loading, setLoading] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
+	const [newUserForm, setNewUserForm] = useState({ username: '', password: '', role: 'user' })
+	const [passwordForm, setPasswordForm] = useState({ userId: '', password: '' })
 
-	const currentQuestion = questions[currentIndex]
+	const currentQuestion = questionList[currentIndex]
+	const canManageUsers = currentUser?.role === 'admin'
 
-	const startQuiz = () => {
-		const startName = playerName.trim() || 'Gracz'
-		setPlayerName(startName)
-		setQuestions(createQuizSession())
+	useEffect(() => {
+		const loadData = async () => {
+			try {
+				const [usersResponse, recordsResponse] = await Promise.all([
+					apiRequest('/users'),
+					apiRequest('/records'),
+				])
+
+				setUsers(usersResponse.users || [])
+				setRecords(recordsResponse.records || [])
+			} catch (error) {
+				console.error(error)
+			}
+		}
+
+		loadData()
+	}, [])
+
+	useEffect(() => {
+		if (screen !== 'quiz') {
+			return
+		}
+
+		setQuestionList(createQuizSession())
+		setCurrentIndex(0)
+		setSelectedAnswer(null)
+		setScore(0)
+	}, [screen])
+
+	const handleLogin = async (event) => {
+		event.preventDefault()
+		setLoading(true)
+		setErrorMessage('')
+
+		try {
+			const response = await apiRequest('/login', {
+				method: 'POST',
+				body: JSON.stringify({ username, password }),
+			})
+
+			setCurrentUser(response.user)
+			setScreen('home')
+			setUsername('')
+			setPassword('')
+		} catch (error) {
+			setErrorMessage(error.message)
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	const handleStartQuiz = () => {
+		setQuestionList(createQuizSession())
 		setCurrentIndex(0)
 		setSelectedAnswer(null)
 		setScore(0)
 		setScreen('quiz')
-	}
-
-	const saveRecord = (entry) => {
-		setRecords((prev) => {
-			const merged = [...prev, entry]
-			const sorted = merged.sort((a, b) => b.score - a.score)
-			const topTen = sorted.slice(0, 10)
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(topTen))
-			return topTen
-		})
 	}
 
 	const handleAnswerClick = (optionIndex) => {
@@ -169,19 +207,29 @@ function App() {
 		const updatedScore = isCorrect ? score + 1 : score
 		setSelectedAnswer(optionIndex)
 
-		setTimeout(() => {
+		setTimeout(async () => {
 			const nextIndex = currentIndex + 1
 
-			if (nextIndex >= questions.length) {
+			if (nextIndex >= questionList.length) {
 				const result = {
-					name: playerName.trim() || 'Gracz',
+					name: currentUser?.username || 'Gracz',
 					score: updatedScore,
 					date: new Date().toISOString(),
 				}
 
-				saveRecord(result)
+				try {
+					const response = await apiRequest('/records', {
+						method: 'POST',
+						body: JSON.stringify(result),
+					})
+
+					setRecords(response.records || [])
+				} catch (error) {
+					console.error(error)
+				}
+
 				setScore(updatedScore)
-				setScreen('finished')
+				setScreen('result')
 				return
 			}
 
@@ -191,37 +239,114 @@ function App() {
 		}, 700)
 	}
 
-	const renderStartScreen = () => (
-		<div className="screen-wrap">
-			<div className="panel start-panel">
-				<p className="label">Fizyka kwantowa</p>
-				<h1>Quiz</h1>
+	const handleCreateUser = async (event) => {
+		event.preventDefault()
 
-				<label className="input-label" htmlFor="player-name">
-					Imię gracza
-				</label>
-				<input
-					id="player-name"
-					type="text"
-					value={playerName}
-					onChange={(event) => setPlayerName(event.target.value)}
-					placeholder="Wpisz swoje imię"
-					maxLength={20}
-				/>
+		try {
+			const response = await apiRequest('/users', {
+				method: 'POST',
+				body: JSON.stringify({
+					username: newUserForm.username,
+					password: newUserForm.password,
+					role: newUserForm.role,
+				}),
+			})
+
+			setUsers((prev) => [...prev, response.user])
+			setNewUserForm({ username: '', password: '', role: 'user' })
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleDeleteUser = async (userId) => {
+		try {
+			await apiRequest(`/users/${userId}`, { method: 'DELETE' })
+			setUsers((prev) => prev.filter((user) => user.id !== userId))
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handlePasswordChange = async (event) => {
+		event.preventDefault()
+
+		try {
+			await apiRequest(`/users/${passwordForm.userId}`, {
+				method: 'PUT',
+				body: JSON.stringify({ password: passwordForm.password }),
+			})
+
+			setPasswordForm({ userId: '', password: '' })
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const topRecords = useMemo(() => [...records].sort((a, b) => b.score - a.score).slice(0, 10), [records])
+
+	const renderLogin = () => (
+		<div className="screen-wrap">
+			<div className="panel">
+				<p className="label">Fizyka kwantowa</p>
+				<h1>Logowanie</h1>
+
+				<form onSubmit={handleLogin} className="form-stack">
+					<label className="input-label" htmlFor="username">Nazwa użytkownika</label>
+					<input
+						id="username"
+						value={username}
+						onChange={(event) => setUsername(event.target.value)}
+						placeholder="np. admin"
+					/>
+
+					<label className="input-label" htmlFor="password">Hasło</label>
+					<input
+						id="password"
+						type="password"
+						value={password}
+						onChange={(event) => setPassword(event.target.value)}
+						placeholder="Wpisz hasło"
+					/>
+
+					{errorMessage && <p className="error-text">{errorMessage}</p>}
+
+					<button type="submit" className="primary-btn" disabled={loading}>
+						{loading ? 'Logowanie...' : 'Zaloguj się'}
+					</button>
+				</form>
+			</div>
+		</div>
+	)
+
+	const renderHome = () => (
+		<div className="screen-wrap">
+			<div className="panel home-panel">
+				<p className="label">Witaj</p>
+				<h1>{currentUser?.username}</h1>
+				<p className="user-role">Rola: {currentUser?.role}</p>
 
 				<div className="button-group">
-					<button type="button" className="primary-btn" onClick={startQuiz}>
-						Start
+					<button type="button" className="primary-btn" onClick={handleStartQuiz}>
+						Rozpocznij quiz
 					</button>
 					<button type="button" className="secondary-btn" onClick={() => setScreen('records')}>
 						Rekordy
+					</button>
+					{canManageUsers && (
+						<button type="button" className="secondary-btn" onClick={() => setScreen('admin')}>
+							Zarządzaj użytkownikami
+						</button>
+					)}
+					<button type="button" className="secondary-btn" onClick={() => { setCurrentUser(null); setScreen('login') }}>
+						Wyloguj
 					</button>
 				</div>
 			</div>
 		</div>
 	)
 
-	const renderQuizScreen = () => {
+	const renderQuiz = () => {
 		if (!currentQuestion) {
 			return null
 		}
@@ -230,7 +355,7 @@ function App() {
 			<div className="screen-wrap">
 				<div className="panel quiz-panel">
 					<div className="quiz-header">
-						<span>Gracz: {playerName || 'Gracz'}</span>
+						<span>Gracz: {currentUser?.username || 'Gość'}</span>
 						<span>
 							Pytanie {currentIndex + 1}/{QUESTIONS_PER_SESSION}
 						</span>
@@ -270,38 +395,38 @@ function App() {
 		)
 	}
 
-	const renderFinishedScreen = () => (
+	const renderResult = () => (
 		<div className="screen-wrap">
 			<div className="panel result-panel">
 				<p className="label">Koniec gry</p>
-				<h1>{playerName}</h1>
+				<h1>{currentUser?.username || 'Gracz'}</h1>
 				<p className="result-score">
 					Twój wynik: <strong>{score}/{QUESTIONS_PER_SESSION}</strong>
 				</p>
 
 				<div className="button-group">
-					<button type="button" className="primary-btn" onClick={startQuiz}>
+					<button type="button" className="primary-btn" onClick={handleStartQuiz}>
 						Zagraj jeszcze raz
 					</button>
-					<button type="button" className="secondary-btn" onClick={() => setScreen('records')}>
-						Rekordy
+					<button type="button" className="secondary-btn" onClick={() => setScreen('home')}>
+						Strona główna
 					</button>
 				</div>
 			</div>
 		</div>
 	)
 
-	const renderRecordsScreen = () => (
+	const renderRecords = () => (
 		<div className="screen-wrap">
 			<div className="panel records-panel">
 				<p className="label">Najlepsze wyniki</p>
 				<h1>Rekordy</h1>
 
-				{records.length === 0 ? (
+				{topRecords.length === 0 ? (
 					<p className="empty-state">Brak zapisanych wyników.</p>
 				) : (
 					<ol className="records-list">
-						{records.map((record, index) => (
+						{topRecords.map((record, index) => (
 							<li key={`${record.name}-${record.date}-${index}`}>
 								<span className="place">#{index + 1}</span>
 								<span className="name">{record.name}</span>
@@ -312,7 +437,7 @@ function App() {
 				)}
 
 				<div className="button-group">
-					<button type="button" className="primary-btn" onClick={() => setScreen('start')}>
+					<button type="button" className="primary-btn" onClick={() => setScreen(currentUser ? 'home' : 'login')}>
 						Powrót
 					</button>
 				</div>
@@ -320,19 +445,105 @@ function App() {
 		</div>
 	)
 
-	if (screen === 'start') {
-		return renderStartScreen()
+	const renderAdminPanel = () => (
+		<div className="screen-wrap">
+			<div className="panel admin-panel">
+				<p className="label">Admin</p>
+				<h1>Zarządzanie użytkownikami</h1>
+
+				<form onSubmit={handleCreateUser} className="admin-form">
+					<input
+						placeholder="Nazwa użytkownika"
+						value={newUserForm.username}
+						onChange={(event) => setNewUserForm((prev) => ({ ...prev, username: event.target.value }))}
+					/>
+					<input
+						type="password"
+						placeholder="Hasło"
+						value={newUserForm.password}
+						onChange={(event) => setNewUserForm((prev) => ({ ...prev, password: event.target.value }))}
+					/>
+					<select
+						value={newUserForm.role}
+						onChange={(event) => setNewUserForm((prev) => ({ ...prev, role: event.target.value }))}
+					>
+						<option value="user">Użytkownik</option>
+						<option value="admin">Admin</option>
+					</select>
+					<button type="submit" className="primary-btn">Dodaj użytkownika</button>
+				</form>
+
+				<div className="admin-user-list">
+					{users.map((user) => (
+						<div key={user.id} className="admin-user-row">
+							<div>
+								<strong>{user.username}</strong>
+								<span>({user.role})</span>
+							</div>
+							<div className="admin-actions">
+								<button
+									type="button"
+									className="secondary-btn small"
+									onClick={() => setPasswordForm({ userId: user.id, password: '' })}
+								>
+									Zmień hasło
+								</button>
+								<button type="button" className="danger-btn" onClick={() => handleDeleteUser(user.id)}>
+									Usuń
+								</button>
+							</div>
+						</div>
+					))}
+				</div>
+
+				{passwordForm.userId && (
+					<form onSubmit={handlePasswordChange} className="password-form">
+						<input
+							type="password"
+							placeholder="Nowe hasło"
+							value={passwordForm.password}
+							onChange={(event) => setPasswordForm((prev) => ({ ...prev, password: event.target.value }))}
+						/>
+						<button type="submit" className="primary-btn">Zapisz hasło</button>
+					</form>
+				)}
+
+				{errorMessage && <p className="error-text">{errorMessage}</p>}
+
+				<div className="button-group">
+					<button type="button" className="primary-btn" onClick={() => setScreen('home')}>
+						Powrót
+					</button>
+				</div>
+			</div>
+		</div>
+	)
+
+	if (screen === 'login') {
+		return renderLogin()
+	}
+
+	if (screen === 'home') {
+		return renderHome()
 	}
 
 	if (screen === 'quiz') {
-		return renderQuizScreen()
+		return renderQuiz()
+	}
+
+	if (screen === 'result') {
+		return renderResult()
 	}
 
 	if (screen === 'records') {
-		return renderRecordsScreen()
+		return renderRecords()
 	}
 
-	return renderFinishedScreen()
+	if (screen === 'admin') {
+		return renderAdminPanel()
+	}
+
+	return renderLogin()
 }
 
 export default App

@@ -237,6 +237,97 @@ input:focus {
   color: #cbd5e1;
 }
 
+.form-stack,
+.admin-form,
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-stack {
+  margin-top: 8px;
+}
+
+.error-text {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.95rem;
+}
+
+.user-role {
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  margin: 0 0 20px;
+}
+
+.home-panel,
+.admin-panel,
+.records-panel,
+.result-panel {
+  text-align: center;
+}
+
+.admin-panel {
+  width: min(800px, 100%);
+}
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.admin-user-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.admin-user-row strong {
+  color: #f8fafc;
+  margin-right: 8px;
+}
+
+.admin-user-row span {
+  color: #cbd5e1;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.small {
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.danger-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 0.65rem 0.95rem;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+  cursor: pointer;
+}
+
+select {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  color: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 16px 18px;
+  border-radius: 14px;
+}
+
 @media (max-width: 600px) {
   .answers-grid {
     grid-template-columns: 1fr;
@@ -244,5 +335,20 @@ input:focus {
 
   .panel {
     padding: 24px 18px;
+  }
+
+  .admin-user-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-actions {
+    width: 100%;
+  }
+
+  .danger-btn,
+  .secondary-btn,
+  .primary-btn {
+    width: 100%;
   }
 }
