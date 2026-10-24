@@ -1,0 +1,35 @@
+[
+  {
+    "id": "quiz-1792856101700",
+    "name": "temat quizu",
+    "questions": [
+      {
+        "question": "Jak nazywa się zjawisko, w którym cząstka może być w wielu stanach jednocześnie?",
+        "options": [
+          "Tunelowanie",
+          "Superpozycja",
+          "Dyfrakcja",
+          "Interferencja"
+        ],
+        "correctAnswer": 1
+      },
+      {
+        "question": "Jak nazywa się najmniejsza porcja światła?",
+        "options": [
+          "Kwark",
+          "Foton",
+          "Boson",
+          "Atom"
+        ],
+        "correctAnswer": 1
+      }
+    ],
+    "assignedToUsers": [
+      "user-1792853097337"
+    ],
+    "assignedToGroups": [
+      "group-1792856065351"
+    ],
+    "createdAt": "2026-10-24T15:35:01.700Z"
+  }
+]
