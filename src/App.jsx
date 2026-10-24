@@ -115,6 +115,19 @@ const allQuestions = [
 	},
 ]
 
+const mergeQuestionLibrary = (savedQuestions = []) => {
+	const combined = [...allQuestions, ...(Array.isArray(savedQuestions) ? savedQuestions : [])]
+	const seen = new Set()
+	return combined.filter((question) => {
+		const signature = [question.question, ...(question.options || [])].join('|||')
+		if (seen.has(signature)) {
+			return false
+		}
+		seen.add(signature)
+		return true
+	})
+}
+
 const createQuizSession = () => {
 	const shuffled = [...allQuestions].sort(() => Math.random() - 0.5)
 	return shuffled.slice(0, QUESTIONS_PER_SESSION)
@@ -169,19 +182,35 @@ function App() {
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
-	const availableQuestions = questions.length > 0 ? questions : allQuestions
+	const questionLibrary = useMemo(() => mergeQuestionLibrary(questions), [questions])
+	const availableQuestions = questionLibrary
 	const filteredQuestions = useMemo(() => {
 		const query = questionSearch.trim().toLowerCase()
 		if (!query) {
-			return questions
+			return questionLibrary
 		}
 
-		return questions.filter((question) => {
+		return questionLibrary.filter((question) => {
 			const haystack = [question.question, ...(question.options || [])].join(' ').toLowerCase()
 			return haystack.includes(query)
 		})
-	}, [questions, questionSearch])
+	}, [questionLibrary, questionSearch])
 	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
+	const sortedQuizzes = useMemo(
+		() =>
+			[...quizzes].sort((a, b) => {
+				const aActive = a.enabled === false ? 1 : 0
+				const bActive = b.enabled === false ? 1 : 0
+				if (aActive !== bActive) {
+					return aActive - bActive
+				}
+
+				const aDate = new Date(a.updatedAt || a.createdAt || 0).getTime()
+				const bDate = new Date(b.updatedAt || b.createdAt || 0).getTime()
+				return bDate - aDate
+			}),
+		[quizzes],
+	)
 
 	const refreshAdminData = async () => {
 		try {
@@ -197,7 +226,7 @@ function App() {
 			setRecords(recordsResponse.records || [])
 			setGroups(groupsResponse.groups || [])
 			setQuizzes(quizzesResponse.quizzes || [])
-			setQuestions(questionsResponse.questions || [])
+			setQuestions(Array.isArray(questionsResponse.questions) ? questionsResponse.questions : [])
 		} catch (error) {
 			console.error(error)
 		}
@@ -1110,7 +1139,7 @@ function App() {
 								<p className="empty-state">Brak utworzonych quizów.</p>
 							) : (
 								<div className="quiz-management-list">
-									{quizzes.map((quiz) => (
+									{sortedQuizzes.map((quiz) => (
 										<div key={quiz.id} className="quiz-card">
 											<div className="quiz-card-header">
 												<strong>{quiz.name}</strong>
@@ -1120,6 +1149,12 @@ function App() {
 											</div>
 
 											<p>{quiz.questions?.length || 0} pytań</p>
+											<p className="muted small-text">
+												Utworzono: {quiz.createdAt ? new Date(quiz.createdAt).toLocaleString('pl-PL') : '—'}
+											</p>
+											<p className="muted small-text">
+												Ostatnia zmiana: {quiz.updatedAt ? new Date(quiz.updatedAt).toLocaleString('pl-PL') : quiz.createdAt ? new Date(quiz.createdAt).toLocaleString('pl-PL') : '—'}
+											</p>
 
 											<div className="quiz-card-actions">
 												<button

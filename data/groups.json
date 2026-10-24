@@ -3,19 +3,25 @@
     "id": "group-1792856052192",
     "name": "grupa3",
     "memberIds": [
-      "user-1"
+      "user-1",
+      "user-1792862064986-2",
+      "user-1792862064986-1"
     ]
   },
   {
     "id": "group-1792856065351",
     "name": "grupa4",
     "memberIds": [
-      "user-1792853097337"
+      "user-1792853097337",
+      "user-1792862064986-5",
+      "user-1792862064986-3"
     ]
   },
   {
     "id": "group-1792857434875",
     "name": "grupa544",
-    "memberIds": []
+    "memberIds": [
+      "user-1792862064986-4"
+    ]
   }
 ]

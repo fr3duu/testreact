@@ -24,7 +24,125 @@ const defaultUsers = [
 const defaultRecords = []
 const defaultGroups = []
 const defaultQuizzes = []
-const defaultQuestions = []
+const defaultQuestions = [
+  {
+    question: 'Co jest najmniejszą jednostką energii w fizyce kwantowej?',
+    options: ['Proton', 'Foton', 'Kwant', 'Elektron'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Kto jest uznawany za twórcę mechaniki kwantowej?',
+    options: ['Newton', 'Planck', 'Einstein', 'Bohr'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Jak nazywa się zasada mówiąca, że nie można jednocześnie dokładnie zmierzyć położenia i pędu?',
+    options: ['Zasada zachowania energii', 'Zasada nieoznaczoności', 'Zasada superpozycji', 'Zasada dualizmu'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Co opisuje funkcja falowa?',
+    options: ['Kolor cząstki', 'Prawdopodobieństwo jej położenia', 'Masę cząstki', 'Ładunek cząstki'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Jak nazywa się zjawisko, w którym cząstka może być w wielu stanach jednocześnie?',
+    options: ['Tunelowanie', 'Superpozycja', 'Dyfrakcja', 'Interferencja'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Która cząstka jest nośnikiem światła?',
+    options: ['Neutron', 'Foton', 'Gluon', 'Elektron'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Jak nazywa się zjawisko przechodzenia cząstki przez barierę, mimo że nie ma wystarczającej energii?',
+    options: ['Tunelowanie kwantowe', 'Odbicie', 'Rozproszenie', 'Absorpcja'],
+    correctAnswer: 0,
+  },
+  {
+    question: 'Który eksperyment pokazał dualizm korpuskularno-falowy?',
+    options: ['Wahadło Foucaulta', 'Podwójna szczelina', 'Spadek ciał Galileusza', 'Zderzenia kul bilardowych'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Elektron w atomie porusza się po…',
+    options: ['Dokładnej orbicie', 'Losowej trajektorii', 'Obszarze prawdopodobieństwa', 'Linii prostej'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Jak nazywa się najmniejsza porcja światła?',
+    options: ['Kwark', 'Foton', 'Boson', 'Atom'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Który fizyk opisał kota Schrödingera?',
+    options: ['Heisenberg', 'Schrödinger', 'Dirac', 'Feynman'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Co oznacza „spin” cząstki?',
+    options: ['Jej temperaturę', 'Rodzaj ładunku', 'Własność kwantową', 'Prędkość obrotu'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Jak nazywa się cząstka o masie bliskiej zeru i prędkości światła?',
+    options: ['Proton', 'Foton', 'Neutron', 'Elektron'],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Co jest podstawowym składnikiem atomu?',
+    options: ['Foton', 'Kwark', 'Proton, neutron, elektron', 'Gluon'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Jak nazywa się zjawisko, w którym dwie cząstki pozostają powiązane niezależnie od odległości?',
+    options: ['Dyfrakcja', 'Tunelowanie', 'Splątanie kwantowe', 'Polaryzacja'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Który fizyk wprowadził pojęcie kwantu energii?',
+    options: ['Planck', 'Tesla', 'Maxwell', 'Bohr'],
+    correctAnswer: 0,
+  },
+  {
+    question: 'Co opisuje równanie Schrödingera?',
+    options: ['Ruch planet', 'Zmiany temperatury', 'Zachowanie funkcji falowej', 'Prędkość światła'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Jak nazywa się zjawisko, w którym światło zachowuje się jak fala?',
+    options: ['Interferencja', 'Dyfrakcja', 'Superpozycja', 'Oba powyższe'],
+    correctAnswer: 3,
+  },
+  {
+    question: 'Która cząstka ma ładunek ujemny?',
+    options: ['Proton', 'Neutron', 'Elektron', 'Foton'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'Co jest podstawowym założeniem mechaniki kwantowej?',
+    options: ['Wszystko jest przewidywalne', 'Świat jest ciągły', 'Zjawiska są probabilistyczne', 'Cząstki nie istnieją'],
+    correctAnswer: 2,
+  },
+]
+
+function mergeQuestionLibrary(savedQuestions = []) {
+  const combined = [...defaultQuestions, ...(Array.isArray(savedQuestions) ? savedQuestions : [])]
+  const seen = new Map()
+
+  for (const question of combined) {
+    const signature = [question.question, ...(Array.isArray(question.options) ? question.options : [])].join('|||')
+    if (!seen.has(signature)) {
+      seen.set(signature, {
+        ...question,
+        options: Array.isArray(question.options) ? question.options : [],
+      })
+    }
+  }
+
+  return [...seen.values()]
+}
 
 async function ensureFile(filePath, fallback) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -245,7 +363,22 @@ app.delete('/api/groups/:groupId/users/:userId', async (req, res) => {
 
 app.get('/api/quizzes', async (_req, res) => {
   const quizzes = await readJson(quizzesFile, defaultQuizzes)
-  return res.json({ quizzes })
+  const sortedQuizzes = [...quizzes].sort((a, b) => {
+    const aEnabled = a.enabled !== false
+    const bEnabled = b.enabled !== false
+
+    if (aEnabled && !bEnabled) {
+      return -1
+    }
+
+    if (!aEnabled && bEnabled) {
+      return 1
+    }
+
+    return 0
+  })
+
+  return res.json({ quizzes: sortedQuizzes })
 })
 
 app.post('/api/quizzes', async (req, res) => {
@@ -275,6 +408,7 @@ app.post('/api/quizzes', async (req, res) => {
     completedBy: [],
     enabled: true,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }
 
   quizzes.push(newQuiz)
@@ -294,6 +428,7 @@ app.put('/api/quizzes/:id/toggle', async (req, res) => {
   }
 
   quiz.enabled = enabled !== false
+  quiz.updatedAt = new Date().toISOString()
   await writeJson(quizzesFile, quizzes)
   return res.json({ quiz })
 })

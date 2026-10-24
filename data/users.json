@@ -16,5 +16,35 @@
     "username": "asd",
     "password": "asd",
     "role": "user"
+  },
+  {
+    "id": "user-1792862064986-1",
+    "username": "typ1",
+    "password": "typ1",
+    "role": "user"
+  },
+  {
+    "id": "user-1792862064986-2",
+    "username": "typ2",
+    "password": "typ2",
+    "role": "user"
+  },
+  {
+    "id": "user-1792862064986-3",
+    "username": "typ3",
+    "password": "typ3",
+    "role": "user"
+  },
+  {
+    "id": "user-1792862064986-4",
+    "username": "typ4",
+    "password": "typ4",
+    "role": "user"
+  },
+  {
+    "id": "user-1792862064986-5",
+    "username": "typ5",
+    "password": "typ5",
+    "role": "user"
   }
 ]
