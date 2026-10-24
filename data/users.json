@@ -6,6 +6,12 @@
     "role": "admin"
   },
   {
+    "id": "admin-2",
+    "username": "admin2",
+    "password": "admin2",
+    "role": "admin"
+  },
+  {
     "id": "user-1",
     "username": "demo",
     "password": "demo",
