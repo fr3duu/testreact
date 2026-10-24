@@ -158,6 +158,13 @@ function App() {
 	const [activeQuiz, setActiveQuiz] = useState(null)
 	const [adminTab, setAdminTab] = useState('users')
 	const [recordTab, setRecordTab] = useState('all')
+	const [questions, setQuestions] = useState([])
+	const [questionForm, setQuestionForm] = useState({
+		question: '',
+		options: ['', '', '', ''],
+		correctAnswer: 0,
+	})
+	const [editingQuestionId, setEditingQuestionId] = useState(null)
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
@@ -165,17 +172,19 @@ function App() {
 
 	const refreshAdminData = async () => {
 		try {
-			const [usersResponse, recordsResponse, groupsResponse, quizzesResponse] = await Promise.all([
+			const [usersResponse, recordsResponse, groupsResponse, quizzesResponse, questionsResponse] = await Promise.all([
 				apiRequest('/users'),
 				apiRequest('/records'),
 				apiRequest('/groups'),
 				apiRequest('/quizzes'),
+				apiRequest('/questions'),
 			])
 
 			setUsers(usersResponse.users || [])
 			setRecords(recordsResponse.records || [])
 			setGroups(groupsResponse.groups || [])
 			setQuizzes(quizzesResponse.quizzes || [])
+			setQuestions(questionsResponse.questions || [])
 		} catch (error) {
 			console.error(error)
 		}
@@ -526,6 +535,81 @@ function App() {
 		}
 	}
 
+	const handleQuestionOptionChange = (index, value) => {
+		setQuestionForm((prev) => ({
+			...prev,
+			options: prev.options.map((option, optionIndex) => (optionIndex === index ? value : option)),
+		}))
+	}
+
+	const resetQuestionForm = () => {
+		setQuestionForm({ question: '', options: ['', '', '', ''], correctAnswer: 0 })
+		setEditingQuestionId(null)
+	}
+
+	const handleSaveQuestion = async (event) => {
+		event.preventDefault()
+
+		if (!questionForm.question.trim()) {
+			setErrorMessage('Treść pytania jest wymagana')
+			return
+		}
+
+		const normalizedOptions = questionForm.options.map((item) => item.trim()).filter(Boolean)
+		if (normalizedOptions.length !== 4) {
+			setErrorMessage('Każde pytanie musi mieć dokładnie 4 odpowiedzi')
+			return
+		}
+
+		try {
+			if (editingQuestionId) {
+				await apiRequest(`/questions/${editingQuestionId}`, {
+					method: 'PUT',
+					body: JSON.stringify({
+						question: questionForm.question,
+						options: normalizedOptions,
+						correctAnswer: Number(questionForm.correctAnswer),
+					}),
+				})
+			} else {
+				await apiRequest('/questions', {
+					method: 'POST',
+					body: JSON.stringify({
+						question: questionForm.question,
+						options: normalizedOptions,
+						correctAnswer: Number(questionForm.correctAnswer),
+					}),
+				})
+			}
+
+			resetQuestionForm()
+			await refreshAdminData()
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleEditQuestion = (question) => {
+		setEditingQuestionId(question.id)
+		setQuestionForm({
+			question: question.question,
+			options: [...question.options],
+			correctAnswer: Number(question.correctAnswer),
+		})
+	}
+
+	const handleDeleteQuestion = async (questionId) => {
+		try {
+			await apiRequest(`/questions/${questionId}`, { method: 'DELETE' })
+			if (editingQuestionId === questionId) {
+				resetQuestionForm()
+			}
+			await refreshAdminData()
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
@@ -767,6 +851,9 @@ function App() {
 					</button>
 					<button type="button" className={adminTab === 'quizzes' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('quizzes')}>
 						Quizy
+					</button>
+					<button type="button" className={adminTab === 'questions' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('questions')}>
+						Pytania
 					</button>
 					<button type="button" className={adminTab === 'records' ? 'tab-btn active' : 'tab-btn'} onClick={() => setAdminTab('records')}>
 						Rekordy
@@ -1070,6 +1157,84 @@ function App() {
 											</div>
 										)
 									})}
+								</div>
+							)}
+						</section>
+					</>
+				)}
+
+				{adminTab === 'questions' && (
+					<>
+						<section className="admin-section">
+							<h2>{editingQuestionId ? 'Edytuj pytanie' : 'Dodaj pytanie'}</h2>
+							<form onSubmit={handleSaveQuestion} className="admin-form">
+								<input
+									placeholder="Treść pytania"
+									value={questionForm.question}
+									onChange={(event) => setQuestionForm((prev) => ({ ...prev, question: event.target.value }))}
+								/>
+
+								{questionForm.options.map((option, index) => (
+									<div key={`question-option-${index}`} className="inline-form">
+										<label className="input-label left-align">Odpowiedź {index + 1}</label>
+										<input
+											value={option}
+											onChange={(event) => handleQuestionOptionChange(index, event.target.value)}
+										/>
+									</div>
+								))}
+
+								<label className="input-label left-align">Numer poprawnej odpowiedzi</label>
+								<select
+									value={questionForm.correctAnswer}
+									onChange={(event) => setQuestionForm((prev) => ({ ...prev, correctAnswer: Number(event.target.value) }))}
+								>
+									<option value={0}>1</option>
+									<option value={1}>2</option>
+									<option value={2}>3</option>
+									<option value={3}>4</option>
+								</select>
+
+								<div className="button-group compact">
+									<button type="submit" className="primary-btn">
+										{editingQuestionId ? 'Zapisz zmiany' : 'Dodaj pytanie'}
+									</button>
+									{editingQuestionId && (
+										<button type="button" className="secondary-btn" onClick={resetQuestionForm}>
+											Anuluj
+										</button>
+									)}
+								</div>
+							</form>
+						</section>
+
+						<section className="admin-section">
+							<h2>Istniejące pytania</h2>
+							{questions.length === 0 ? (
+								<p className="empty-state">Brak pytań.</p>
+							) : (
+								<div className="question-list">
+									{questions.map((question) => (
+										<div key={question.id} className="question-card">
+											<p><strong>{question.question}</strong></p>
+											<ul>
+												{question.options.map((option, index) => (
+													<li key={`${question.id}-${index}`}>
+														{index + 1}. {option}
+														{index === Number(question.correctAnswer) ? ' ✅' : ''}
+													</li>
+												))}
+											</ul>
+											<div className="admin-actions">
+												<button type="button" className="secondary-btn small" onClick={() => handleEditQuestion(question)}>
+													Edytuj
+												</button>
+												<button type="button" className="danger-btn small" onClick={() => handleDeleteQuestion(question.id)}>
+													Usuń
+												</button>
+											</div>
+										</div>
+									))}
 								</div>
 							)}
 						</section>

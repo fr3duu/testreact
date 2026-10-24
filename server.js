@@ -13,6 +13,7 @@ const usersFile = path.join(dataDir, 'users.json')
 const recordsFile = path.join(dataDir, 'records.json')
 const groupsFile = path.join(dataDir, 'groups.json')
 const quizzesFile = path.join(dataDir, 'quizzes.json')
+const questionsFile = path.join(dataDir, 'questions.json')
 const distDir = path.join(__dirname, 'dist')
 
 const defaultUsers = [
@@ -23,6 +24,7 @@ const defaultUsers = [
 const defaultRecords = []
 const defaultGroups = []
 const defaultQuizzes = []
+const defaultQuestions = []
 
 async function ensureFile(filePath, fallback) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -427,6 +429,88 @@ app.put('/api/records/quiz/:quizId/visibility', async (req, res) => {
   return res.json({ updated, records })
 })
 
+app.get('/api/questions', async (_req, res) => {
+  const questions = await readJson(questionsFile, defaultQuestions)
+  return res.json({ questions })
+})
+
+app.post('/api/questions', async (req, res) => {
+  const { question, options, correctAnswer } = req.body || {}
+
+  if (!question || !String(question).trim()) {
+    return res.status(400).json({ message: 'Treść pytania jest wymagana' })
+  }
+
+  const normalizedOptions = Array.isArray(options) ? options.map((item) => String(item).trim()).filter(Boolean) : []
+  if (normalizedOptions.length !== 4) {
+    return res.status(400).json({ message: 'Pytanie musi mieć dokładnie 4 odpowiedzi' })
+  }
+
+  const parsedCorrect = Number(correctAnswer)
+  if (!Number.isInteger(parsedCorrect) || parsedCorrect < 0 || parsedCorrect > 3) {
+    return res.status(400).json({ message: 'Poprawna odpowiedź musi być numerem od 0 do 3' })
+  }
+
+  const questions = await readJson(questionsFile, defaultQuestions)
+  const newQuestion = {
+    id: `question-${Date.now()}`,
+    question: String(question).trim(),
+    options: normalizedOptions,
+    correctAnswer: parsedCorrect,
+  }
+
+  questions.push(newQuestion)
+  await writeJson(questionsFile, questions)
+
+  return res.status(201).json({ question: newQuestion })
+})
+
+app.put('/api/questions/:id', async (req, res) => {
+  const { id } = req.params
+  const { question, options, correctAnswer } = req.body || {}
+
+  const questions = await readJson(questionsFile, defaultQuestions)
+  const item = questions.find((entry) => entry.id === id)
+
+  if (!item) {
+    return res.status(404).json({ message: 'Pytanie nie istnieje' })
+  }
+
+  if (!question || !String(question).trim()) {
+    return res.status(400).json({ message: 'Treść pytania jest wymagana' })
+  }
+
+  const normalizedOptions = Array.isArray(options) ? options.map((entry) => String(entry).trim()).filter(Boolean) : []
+  if (normalizedOptions.length !== 4) {
+    return res.status(400).json({ message: 'Pytanie musi mieć dokładnie 4 odpowiedzi' })
+  }
+
+  const parsedCorrect = Number(correctAnswer)
+  if (!Number.isInteger(parsedCorrect) || parsedCorrect < 0 || parsedCorrect > 3) {
+    return res.status(400).json({ message: 'Poprawna odpowiedź musi być numerem od 0 do 3' })
+  }
+
+  item.question = String(question).trim()
+  item.options = normalizedOptions
+  item.correctAnswer = parsedCorrect
+
+  await writeJson(questionsFile, questions)
+  return res.json({ question: item })
+})
+
+app.delete('/api/questions/:id', async (req, res) => {
+  const { id } = req.params
+  const questions = await readJson(questionsFile, defaultQuestions)
+  const filtered = questions.filter((question) => question.id !== id)
+
+  if (filtered.length === questions.length) {
+    return res.status(404).json({ message: 'Pytanie nie istnieje' })
+  }
+
+  await writeJson(questionsFile, filtered)
+  return res.json({ message: 'Pytanie usunięte' })
+})
+
 app.use(express.static(distDir))
 
 app.use((req, res, next) => {
@@ -442,6 +526,7 @@ try {
   await ensureFile(recordsFile, defaultRecords)
   await ensureFile(groupsFile, defaultGroups)
   await ensureFile(quizzesFile, defaultQuizzes)
+  await ensureFile(questionsFile, defaultQuestions)
 
   app.listen(port, () => {
     console.log(`Server działa na http://localhost:${port}`)
