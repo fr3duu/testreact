@@ -1,16 +1,93 @@
-# React + Vite
+# Quiz kwantowy — React + Express
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+To jest aplikacja quizowa z prostym panelem logowania, rankingiem rekordów, systemem grup i zarządzaniem quizami dla administratora. Aplikacja korzysta z frontendu React (Vite) i backendu Express z zapisem danych w plikach JSON.
 
-Currently, two official plugins are available:
+## Funkcjonalności
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- quiz z pytaniami z fizyki kwantowej
+- ekran startowy z loginem
+- zapis wyników i czasu rozwiązywania quizu
+- ranking rekordów z podziałem na główny ranking i ranking dla konkretnego quizu
+- logowanie użytkowników i administratora
+- panel admina do:
+  - dodawania i usuwania użytkowników
+  - zmiany hasła użytkownika
+  - tworzenia grup użytkowników
+  - przypisywania użytkowników do grup
+  - tworzenia własnych quizów
+  - przypisywania quizów do użytkowników i grup
+  - włączania i wyłączania quizów
+  - zarządzania widocznością rekordów w rankingach
+- zapis danych do plików JSON w katalogu `data/`
 
-## React Compiler
+## Struktura projektu
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `src/` — frontend React
+- `server.js` — backend Express
+- `data/` — pliki z użytkownikami, grupami, quizami i rekordami
+- `vite.config.js` — konfiguracja Vite i proxy do API
 
-## Expanding the Oxlint configuration
+## Domyślni użytkownicy
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Po pierwszym uruchomieniu backendu tworzone są domyślne konta:
+
+- admin / admin123
+- demo / demo123
+
+## Wymagania
+
+- Node.js 18+
+- npm
+
+## Uruchomienie lokalne
+
+1. Otwórz terminal w katalogu projektu.
+2. Zainstaluj zależności:
+
+```bash
+npm install
+```
+
+3. Uruchom backend:
+
+```bash
+node server.js
+```
+
+4. Uruchom frontend w osobnym terminalu:
+
+```bash
+npm run dev -- --host 0.0.0.0
+```
+
+5. Otwórz aplikację w przeglądarce:
+
+- http://localhost:5173/
+
+Backend API działa pod adresem:
+
+- http://localhost:3001/
+
+## Build produkcyjny
+
+```bash
+npm run build
+```
+
+## GitHub Pages / deploy
+
+Projekt ma ustawiony parametr `homepage` do GitHub Pages i skrypt `deploy`:
+
+```bash
+npm run deploy
+```
+
+## Uwagi
+
+- frontend komunikuje się z backendem przez `/api`
+- Vite jest skonfigurowany z proxy do `http://localhost:3001`
+- dane są przechowywane lokalnie w plikach JSON, więc po zmianach w aplikacji nie traci się stanu po restarcie serwera
+
+## Autor
+
+Projekt wykonany jako aplikacja do nauki i demonstracji mechaniki quizowej w React + Express.
