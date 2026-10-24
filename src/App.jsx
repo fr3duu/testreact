@@ -165,10 +165,22 @@ function App() {
 		correctAnswer: 0,
 	})
 	const [editingQuestionId, setEditingQuestionId] = useState(null)
+	const [questionSearch, setQuestionSearch] = useState('')
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
 	const availableQuestions = questions.length > 0 ? questions : allQuestions
+	const filteredQuestions = useMemo(() => {
+		const query = questionSearch.trim().toLowerCase()
+		if (!query) {
+			return questions
+		}
+
+		return questions.filter((question) => {
+			const haystack = [question.question, ...(question.options || [])].join(' ').toLowerCase()
+			return haystack.includes(query)
+		})
+	}, [questions, questionSearch])
 	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
 
 	const refreshAdminData = async () => {
@@ -1211,12 +1223,23 @@ function App() {
 
 						<section className="admin-section">
 							<h2>Istniejące pytania</h2>
-							{questions.length === 0 ? (
-								<p className="empty-state">Brak pytań.</p>
+							<input
+								placeholder="Szukaj po pytaniu lub odpowiedzi"
+								value={questionSearch}
+								onChange={(event) => setQuestionSearch(event.target.value)}
+								className="search-input"
+							/>
+							{filteredQuestions.length === 0 ? (
+								<p className="empty-state">Brak pytań pasujących do wyszukiwania.</p>
 							) : (
 								<div className="question-list">
-									{questions.map((question) => (
-										<div key={question.id} className="question-card">
+									{filteredQuestions.map((question) => (
+										<div
+											key={question.id}
+											className="question-card"
+											onClick={() => handleEditQuestion(question)}
+											style={{ cursor: 'pointer' }}
+										>
 											<p><strong>{question.question}</strong></p>
 											<ul>
 												{question.options.map((option, index) => (
@@ -1226,7 +1249,7 @@ function App() {
 													</li>
 												))}
 											</ul>
-											<div className="admin-actions">
+											<div className="admin-actions" onClick={(event) => event.stopPropagation()}>
 												<button type="button" className="secondary-btn small" onClick={() => handleEditQuestion(question)}>
 													Edytuj
 												</button>
