@@ -698,7 +698,7 @@ function App() {
 						Główny ranking
 					</button>
 					{quizzes
-						.filter((quiz) => quiz.enabled !== false)
+						.filter((quiz) => records.some((record) => record.quizId === quiz.id))
 						.map((quiz) => (
 						<button
 							key={quiz.id}
@@ -708,7 +708,7 @@ function App() {
 						>
 							{quiz.name}
 						</button>
-					))}
+						))}
 				</div>
 
 				{recordTab === 'all' ? (
