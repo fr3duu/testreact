@@ -168,6 +168,7 @@ function App() {
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
+	const availableQuestions = questions.length > 0 ? questions : allQuestions
 	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
 
 	const refreshAdminData = async () => {
@@ -447,7 +448,7 @@ function App() {
 			return
 		}
 
-		const selectedQuestions = allQuestions.filter((_, index) => quizForm.selectedQuestionIds.includes(index))
+		const selectedQuestions = availableQuestions.filter((_, index) => quizForm.selectedQuestionIds.includes(index))
 		if (!selectedQuestions.length) {
 			setErrorMessage('Wybierz co najmniej jedno pytanie')
 			return
@@ -1021,7 +1022,7 @@ function App() {
 								/>
 
 								<div className="question-selection">
-									{allQuestions.map((question, index) => (
+									{availableQuestions.map((question, index) => (
 										<label key={`${question.question}-${index}`} className="checkbox-row">
 											<input
 												type="checkbox"
