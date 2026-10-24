@@ -697,7 +697,9 @@ function App() {
 					<button type="button" className={recordTab === 'all' ? 'tab-btn active' : 'tab-btn'} onClick={() => setRecordTab('all')}>
 						Główny ranking
 					</button>
-					{quizzes.map((quiz) => (
+					{quizzes
+						.filter((quiz) => quiz.enabled !== false)
+						.map((quiz) => (
 						<button
 							key={quiz.id}
 							type="button"
@@ -1050,7 +1052,8 @@ function App() {
 											<div key={quiz.id} className="record-toggle-row">
 												<div>
 													<strong>{quiz.name}</strong>
-													<p>{isVisible ? 'Widoczne w zakładce rekordów' : 'Ukryte w zakładce rekordów'}</p>
+													<p>Aktywny: {quiz.enabled === false ? 'Nie' : 'Tak'}</p>
+													<p>Ranking: {isVisible ? 'Widoczny' : 'Ukryty'}</p>
 												</div>
 												<button
 													type="button"

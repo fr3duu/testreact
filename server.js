@@ -82,7 +82,7 @@ app.get('/api/users/:id/quizzes', async (req, res) => {
         })
       : false
 
-    return directAssign || groupAssign
+    return (directAssign || groupAssign) && quiz.enabled !== false
   })
 
   const safeQuizzes = assignedQuizzes.map((quiz) => ({
