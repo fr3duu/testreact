@@ -833,9 +833,11 @@ function App() {
 				</p>
 
 				<div className="button-group">
-					<button type="button" className="primary-btn" onClick={handleStartQuiz}>
-						Zagraj jeszcze raz
-					</button>
+					{!activeQuiz?.id && (
+						<button type="button" className="primary-btn" onClick={handleStartQuiz}>
+							Zagraj jeszcze raz
+						</button>
+					)}
 					<button type="button" className="secondary-btn" onClick={() => setScreen('home')}>
 						Strona główna
 					</button>
