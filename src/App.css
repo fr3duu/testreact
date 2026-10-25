@@ -739,8 +739,8 @@ button:focus-visible {
 
 .login-ball-art {
   display: block;
-  width: 140px;
-  height: 140px;
+  width: 180px;
+  height: 150px;
   margin: -8px auto 20px;
   object-fit: contain;
 }

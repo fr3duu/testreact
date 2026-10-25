@@ -685,7 +685,7 @@ function App() {
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
-				<img className="login-ball-art" src="/soccer-ball.svg" alt="Piłka nożna" />
+				<img className="login-ball-art" src="/gege-logo.png" alt="Logo Gege Quiz z piłką nożną" />
 				<p className="label">Gege quiz</p>
 				<h1>Logowanie</h1>
 
