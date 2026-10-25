@@ -127,21 +127,24 @@ const defaultQuestions = [
   },
 ]
 
-function mergeQuestionLibrary(savedQuestions = []) {
-  const combined = [...defaultQuestions, ...(Array.isArray(savedQuestions) ? savedQuestions : [])]
-  const seen = new Map()
+const defaultQuestionId = (index) => `default-question-${index}`
 
-  for (const question of combined) {
-    const signature = [question.question, ...(Array.isArray(question.options) ? question.options : [])].join('|||')
-    if (!seen.has(signature)) {
-      seen.set(signature, {
-        ...question,
-        options: Array.isArray(question.options) ? question.options : [],
-      })
+function getQuestionCatalog(savedQuestions) {
+  const defaultIds = new Set(defaultQuestions.map((_, index) => defaultQuestionId(index)))
+  const savedById = new Map(savedQuestions.filter((question) => question.id).map((question) => [String(question.id), question]))
+  const builtInQuestions = defaultQuestions.flatMap((question, index) => {
+    const id = defaultQuestionId(index)
+    const savedQuestion = savedById.get(id)
+    if (savedQuestion?.deleted) {
+      return []
     }
-  }
+    return [{ ...question, ...savedQuestion, id }]
+  })
+  const customQuestions = savedQuestions.filter(
+    (question) => question.id && !defaultIds.has(String(question.id)) && !question.deleted,
+  )
 
-  return [...seen.values()]
+  return [...builtInQuestions, ...customQuestions]
 }
 
 async function ensureFile(filePath, fallback) {
@@ -666,8 +669,8 @@ app.put('/api/records/quiz/:quizId/visibility', async (req, res) => {
 })
 
 app.get('/api/questions', async (_req, res) => {
-  const questions = await readJson(questionsFile, defaultQuestions)
-  return res.json({ questions })
+  const savedQuestions = await readJson(questionsFile, defaultQuestions)
+  return res.json({ questions: getQuestionCatalog(savedQuestions) })
 })
 
 app.post('/api/questions', async (req, res) => {
@@ -705,13 +708,6 @@ app.put('/api/questions/:id', async (req, res) => {
   const { id } = req.params
   const { question, options, correctAnswer } = req.body || {}
 
-  const questions = await readJson(questionsFile, defaultQuestions)
-  const item = questions.find((entry) => entry.id === id)
-
-  if (!item) {
-    return res.status(404).json({ message: 'Pytanie nie istnieje' })
-  }
-
   if (!question || !String(question).trim()) {
     return res.status(400).json({ message: 'Treść pytania jest wymagana' })
   }
@@ -726,19 +722,45 @@ app.put('/api/questions/:id', async (req, res) => {
     return res.status(400).json({ message: 'Poprawna odpowiedź musi być numerem od 0 do 3' })
   }
 
+  const questions = await readJson(questionsFile, defaultQuestions)
+  const defaultIndex = defaultQuestions.findIndex((_, index) => defaultQuestionId(index) === id)
+  let item = questions.find((entry) => String(entry.id) === id)
+
+  if (!item && defaultIndex === -1) {
+    return res.status(404).json({ message: 'Pytanie nie istnieje' })
+  }
+
+  if (!item) {
+    item = { id }
+    questions.push(item)
+  }
+
   item.question = String(question).trim()
   item.options = normalizedOptions
   item.correctAnswer = parsedCorrect
+  delete item.deleted
 
   await writeJson(questionsFile, questions)
-  return res.json({ question: item })
+  return res.json({ question: { ...item } })
 })
 
 app.delete('/api/questions/:id', async (req, res) => {
   const { id } = req.params
   const questions = await readJson(questionsFile, defaultQuestions)
-  const filtered = questions.filter((question) => question.id !== id)
+  const defaultIndex = defaultQuestions.findIndex((_, index) => defaultQuestionId(index) === id)
 
+  if (defaultIndex !== -1) {
+    const existingIndex = questions.findIndex((question) => String(question.id) === id)
+    if (existingIndex === -1) {
+      questions.push({ id, deleted: true })
+    } else {
+      questions[existingIndex] = { id, deleted: true }
+    }
+    await writeJson(questionsFile, questions)
+    return res.json({ message: 'Pytanie usunięte' })
+  }
+
+  const filtered = questions.filter((question) => String(question.id) !== id)
   if (filtered.length === questions.length) {
     return res.status(404).json({ message: 'Pytanie nie istnieje' })
   }

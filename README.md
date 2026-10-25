@@ -164,7 +164,7 @@ Wszystkie endpointy API mają prefiks `/api` i przyjmują lub zwracają JSON, ch
 | `POST` | `/records` | Zapis wyniku. |
 | `PUT` | `/records/:recordId/visibility` | Zmiana widoczności pojedynczego wyniku. |
 | `PUT` | `/records/quiz/:quizId/visibility` | Zmiana widoczności rekordów danego quizu. |
-| `GET` | `/questions` | Lista pytań dodanych do pliku danych. |
+| `GET` | `/questions` | Pełna biblioteka pytań wbudowanych i dodanych przez administratora. |
 | `POST` | `/questions` | Dodanie pytania. |
 | `PUT` | `/questions/:id` | Edycja pytania. |
 | `DELETE` | `/questions/:id` | Usunięcie pytania. |
@@ -184,7 +184,7 @@ Backend przechowuje stan aplikacji w następujących plikach:
 | `data/users.json` | Użytkownicy, role i hasła. |
 | `data/groups.json` | Grupy i identyfikatory członków. |
 | `data/quizzes.json` | Quizy, pytania, przypisania, status i widoczność zakładki rankingu. |
-| `data/questions.json` | Pytania utworzone przez administratora. |
+| `data/questions.json` | Pytania administratora, nadpisania pytań wbudowanych i informacje o ich usunięciu. |
 | `data/records.json` | Wyniki, czasy i widoczność rekordów. |
 
 Pliki tworzone są przy pierwszym uruchomieniu, jeżeli nie istnieją. Dane zapisują się lokalnie i przetrwają restart procesu, ale nie są współdzielone automatycznie pomiędzy osobnymi instancjami backendu. Zrób kopię katalogu `data/` przed ręczną edycją lub przenoszeniem środowiska. Niepoprawny JSON może zostać zastąpiony wartościami domyślnymi przez mechanizm odczytu danych.

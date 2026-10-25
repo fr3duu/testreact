@@ -117,19 +117,6 @@ const allQuestions = [
 	},
 ]
 
-const mergeQuestionLibrary = (savedQuestions = []) => {
-	const combined = [...allQuestions, ...(Array.isArray(savedQuestions) ? savedQuestions : [])]
-	const seen = new Set()
-	return combined.filter((question) => {
-		const signature = getQuestionSignature(question)
-		if (seen.has(signature)) {
-			return false
-		}
-		seen.add(signature)
-		return true
-	})
-}
-
 const createQuizSession = () => {
 	const shuffled = [...allQuestions].sort(() => Math.random() - 0.5)
 	return shuffled.slice(0, QUESTIONS_PER_SESSION)
@@ -189,7 +176,7 @@ function App() {
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
-	const questionLibrary = useMemo(() => mergeQuestionLibrary(questions), [questions])
+	const questionLibrary = questions
 	const availableQuestions = questionLibrary
 	const filteredQuestions = useMemo(() => {
 		const query = questionSearch.trim().toLowerCase()
