@@ -685,8 +685,8 @@ function App() {
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
-				<img className="login-ball-art" src="/soccer-ball.svg" alt="Piłka nożna na boisku" />
-				<p className="label">Piłkarski quiz</p>
+				<img className="login-ball-art" src="/soccer-ball.svg" alt="Piłka nożna" />
+				<p className="label">Gege quiz</p>
 				<h1>Logowanie</h1>
 
 				<form onSubmit={handleLogin} className="form-stack">
@@ -722,7 +722,7 @@ function App() {
 			<div className="panel home-panel">
 				<p className="label">Witaj</p>
 				<h1>{currentUser?.username}</h1>
-				<p className="user-role">Rola: {currentUser?.role}</p>
+				{canManageUsers && <p className="user-role">Rola: {currentUser.role}</p>}
 
 				{assignedQuizzes.length > 0 && (
 					<div className="notice-box">
