@@ -36,6 +36,8 @@ Gege Quiz to aplikacja webowa z quizami, rankingami i panelem administracyjnym. 
 - Dodawanie i usuwanie użytkowników oraz zmiana ich haseł.
 - Tworzenie grup i zarządzanie członkostwem.
 - Tworzenie quizów z biblioteki pytań i przypisywanie ich użytkownikom lub grupom.
+- Edycja istniejących quizów: zmiana nazwy, pytań oraz przypisanych użytkowników i grup.
+- Usuwanie quizów. Ich historyczne wyniki pozostają w głównym rankingu.
 - Włączanie i wyłączanie quizów.
 - Ukrywanie i ponowne pokazywanie całej zakładki rankingu quizu. Operacja nie usuwa wyników ani nie zmienia widoczności poszczególnych rekordów.
 - Dodawanie, edycja, wyszukiwanie i usuwanie pytań.
@@ -152,6 +154,8 @@ Wszystkie endpointy API mają prefiks `/api` i przyjmują lub zwracają JSON, ch
 | `DELETE` | `/groups/:groupId/users/:userId` | Usunięcie użytkownika z grupy. |
 | `GET` | `/quizzes` | Lista quizów. |
 | `POST` | `/quizzes` | Utworzenie quizu. |
+| `PUT` | `/quizzes/:id` | Edycja nazwy, pytań i przypisanych użytkowników oraz grup. |
+| `DELETE` | `/quizzes/:id` | Usunięcie quizu; historyczne wyniki pozostają zapisane. |
 | `PUT` | `/quizzes/:id/toggle` | Włączenie lub wyłączenie quizu. |
 | `PUT` | `/quizzes/:id/leaderboard-visibility` | Pokazanie lub ukrycie zakładki rankingu quizu. |
 | `POST` | `/quizzes/assign` | Przypisanie quizu użytkownikom lub grupom. |

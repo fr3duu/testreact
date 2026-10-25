@@ -4,6 +4,8 @@ import './App.css'
 
 const QUESTIONS_PER_SESSION = 10
 
+const getQuestionSignature = (question) => [question.question, ...(question.options || [])].join('|||')
+
 const allQuestions = [
 	{
 		question: 'Co jest najmniejszą jednostką energii w fizyce kwantowej?',
@@ -119,7 +121,7 @@ const mergeQuestionLibrary = (savedQuestions = []) => {
 	const combined = [...allQuestions, ...(Array.isArray(savedQuestions) ? savedQuestions : [])]
 	const seen = new Set()
 	return combined.filter((question) => {
-		const signature = [question.question, ...(question.options || [])].join('|||')
+		const signature = getQuestionSignature(question)
 		if (seen.has(signature)) {
 			return false
 		}
@@ -168,6 +170,7 @@ function App() {
 		assignToUsers: [],
 		assignToGroups: [],
 	})
+	const [editingQuiz, setEditingQuiz] = useState(null)
 	const [activeQuiz, setActiveQuiz] = useState(null)
 	const [adminTab, setAdminTab] = useState('users')
 	const [recordTab, setRecordTab] = useState('all')
@@ -564,6 +567,79 @@ function App() {
 			})
 			setErrorMessage('')
 			await refreshAdminData()
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleStartQuizEdit = (quiz) => {
+		const assignedGroupIds = Array.isArray(quiz.assignedToGroups) ? quiz.assignedToGroups.map(String) : []
+		const groupMemberIds = new Set(
+			groups
+				.filter((group) => assignedGroupIds.includes(String(group.id)))
+				.flatMap((group) => (Array.isArray(group.memberIds) ? group.memberIds.map(String) : [])),
+		)
+
+		setEditingQuiz({
+			id: quiz.id,
+			name: quiz.name,
+			questions: Array.isArray(quiz.questions)
+				? quiz.questions.map((question) => ({ ...question, options: [...(question.options || [])] }))
+				: [],
+			assignToUsers: (quiz.assignedToUsers || []).map(String).filter((userId) => !groupMemberIds.has(userId)),
+			assignToGroups: assignedGroupIds,
+		})
+		setErrorMessage('')
+	}
+
+	const handleUpdateQuiz = async (event) => {
+		event.preventDefault()
+		if (!editingQuiz) {
+			return
+		}
+		if (!editingQuiz.name.trim()) {
+			setErrorMessage('Nazwa quizu jest wymagana')
+			return
+		}
+		if (!editingQuiz.questions.length) {
+			setErrorMessage('Wybierz co najmniej jedno pytanie')
+			return
+		}
+
+		try {
+			const response = await apiRequest(`/quizzes/${editingQuiz.id}`, {
+				method: 'PUT',
+				body: JSON.stringify({
+					name: editingQuiz.name,
+					questions: editingQuiz.questions,
+					userIds: editingQuiz.assignToUsers,
+					groupIds: editingQuiz.assignToGroups,
+				}),
+			})
+
+			setQuizzes((prev) => prev.map((quiz) => (quiz.id === response.quiz.id ? response.quiz : quiz)))
+			setEditingQuiz(null)
+			setErrorMessage('')
+		} catch (error) {
+			setErrorMessage(error.message)
+		}
+	}
+
+	const handleDeleteQuiz = async (quiz) => {
+		const confirmed = window.confirm(
+			`Czy na pewno usunąć quiz „${quiz.name}”? Historyczne wyniki pozostaną w głównym rankingu.`,
+		)
+		if (!confirmed) {
+			return
+		}
+
+		try {
+			await apiRequest(`/quizzes/${quiz.id}`, { method: 'DELETE' })
+			setQuizzes((prev) => prev.filter((entry) => entry.id !== quiz.id))
+			if (editingQuiz?.id === quiz.id) {
+				setEditingQuiz(null)
+			}
+			setErrorMessage('')
 		} catch (error) {
 			setErrorMessage(error.message)
 		}
@@ -1202,7 +1278,26 @@ function App() {
 								<p className="empty-state">Brak utworzonych quizów.</p>
 							) : (
 								<div className="quiz-management-list">
-									{sortedQuizzes.map((quiz) => (
+									{sortedQuizzes.map((quiz) => {
+										const editForm = editingQuiz?.id === quiz.id ? editingQuiz : null
+										const editQuestionQuery = quizQuestionSearch.trim().toLowerCase()
+										const editQuestionChoices = [
+											...questionLibrary,
+											...(editForm?.questions || []).filter(
+												(selectedQuestion) =>
+													!questionLibrary.some(
+														(libraryQuestion) =>
+															getQuestionSignature(libraryQuestion) === getQuestionSignature(selectedQuestion),
+													),
+											),
+										].filter((question) => {
+											if (!editQuestionQuery) {
+												return true
+											}
+											return getQuestionSignature(question).toLowerCase().includes(editQuestionQuery)
+										})
+
+										return (
 										<div key={quiz.id} className="quiz-card">
 											<div className="quiz-card-header">
 												<strong>{quiz.name}</strong>
@@ -1222,14 +1317,166 @@ function App() {
 											<div className="quiz-card-actions">
 												<button
 													type="button"
+													className="secondary-btn small"
+													onClick={() => (editForm ? setEditingQuiz(null) : handleStartQuizEdit(quiz))}
+												>
+													{editForm ? 'Anuluj edycję' : 'Edytuj'}
+												</button>
+												<button
+													type="button"
 													className={quiz.enabled === false ? 'secondary-btn small' : 'danger-btn small'}
 													onClick={() => handleToggleQuiz(quiz.id, quiz.enabled === false)}
 												>
 													{quiz.enabled === false ? 'Włącz' : 'Wyłącz'}
 												</button>
+												<button
+													type="button"
+													className="danger-btn small"
+													onClick={() => handleDeleteQuiz(quiz)}
+												>
+													Usuń quiz
+												</button>
 											</div>
+
+											{editForm && (
+												<form onSubmit={handleUpdateQuiz} className="admin-form quiz-edit-form">
+													<h3>Edytuj quiz</h3>
+													<input
+														aria-label="Nazwa quizu"
+														placeholder="Nazwa quizu"
+														value={editForm.name}
+														onChange={(event) =>
+															setEditingQuiz((prev) =>
+																prev?.id === quiz.id ? { ...prev, name: event.target.value } : prev,
+															)
+														}
+													/>
+
+													<div className="question-selection">
+														<input
+															aria-label="Szukaj pytań do quizu"
+															placeholder="Szukaj pytań"
+															value={quizQuestionSearch}
+															onChange={(event) => setQuizQuestionSearch(event.target.value)}
+															className="search-input"
+														/>
+														{editQuestionChoices.map((question) => {
+															const signature = getQuestionSignature(question)
+															const checked = editForm.questions.some(
+																(selectedQuestion) => getQuestionSignature(selectedQuestion) === signature,
+															)
+
+															return (
+																<label key={signature} className="checkbox-row">
+																	<input
+																		type="checkbox"
+																		checked={checked}
+																		onChange={() =>
+																			setEditingQuiz((prev) => {
+																				if (!prev || prev.id !== quiz.id) {
+																					return prev
+																				}
+																				return {
+																					...prev,
+																					questions: checked
+																						? prev.questions.filter(
+																								(selectedQuestion) =>
+																									getQuestionSignature(selectedQuestion) !== signature,
+																							)
+																						: [...prev.questions, question],
+																				}
+																			})
+																		}
+																	/>
+																	<span>{question.question}</span>
+																</label>
+															)
+														})}
+													</div>
+
+													<div className="assignment-grid">
+														<div>
+															<h3>Przypisani użytkownicy</h3>
+															<input
+																aria-label="Szukaj użytkowników do quizu"
+																placeholder="Szukaj użytkowników"
+																value={quizUserSearch}
+																onChange={(event) => setQuizUserSearch(event.target.value)}
+																className="search-input"
+															/>
+															{filteredQuizUsers.map((user) => {
+																const userId = String(user.id)
+																return (
+																	<label key={user.id} className="checkbox-row small-row">
+																		<input
+																			type="checkbox"
+																			checked={editForm.assignToUsers.includes(userId)}
+																			onChange={() =>
+																				setEditingQuiz((prev) =>
+																					prev?.id === quiz.id
+																						? {
+																								...prev,
+																								assignToUsers: prev.assignToUsers.includes(userId)
+																									? prev.assignToUsers.filter((id) => id !== userId)
+																									: [...prev.assignToUsers, userId],
+																							}
+																						: prev,
+																				)
+																			}
+																		/>
+																		<span>{user.username}</span>
+																	</label>
+																)
+															})}
+														</div>
+
+														<div>
+															<h3>Przypisane grupy</h3>
+															<input
+																aria-label="Szukaj grup do quizu"
+																placeholder="Szukaj grup"
+																value={quizGroupSearch}
+																onChange={(event) => setQuizGroupSearch(event.target.value)}
+																className="search-input"
+															/>
+															{filteredQuizGroups.map((group) => {
+																const groupId = String(group.id)
+																return (
+																	<label key={group.id} className="checkbox-row small-row">
+																		<input
+																			type="checkbox"
+																			checked={editForm.assignToGroups.includes(groupId)}
+																			onChange={() =>
+																				setEditingQuiz((prev) =>
+																					prev?.id === quiz.id
+																						? {
+																								...prev,
+																								assignToGroups: prev.assignToGroups.includes(groupId)
+																									? prev.assignToGroups.filter((id) => id !== groupId)
+																									: [...prev.assignToGroups, groupId],
+																							}
+																						: prev,
+																				)
+																			}
+																		/>
+																		<span>{group.name}</span>
+																	</label>
+																)
+															})}
+														</div>
+													</div>
+
+													<div className="quiz-card-actions">
+														<button type="submit" className="primary-btn">Zapisz zmiany</button>
+														<button type="button" className="secondary-btn" onClick={() => setEditingQuiz(null)}>
+															Anuluj
+														</button>
+													</div>
+												</form>
+											)}
 										</div>
-									))}
+										)
+									})}
 								</div>
 							)}
 						</section>

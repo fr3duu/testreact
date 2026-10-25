@@ -418,6 +418,98 @@ app.post('/api/quizzes', async (req, res) => {
   return res.status(201).json({ quiz: newQuiz })
 })
 
+app.put('/api/quizzes/:id', async (req, res) => {
+  const { id } = req.params
+  const { name, questions, userIds, groupIds } = req.body || {}
+
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ message: 'Nazwa quizu jest wymagana' })
+  }
+
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return res.status(400).json({ message: 'Quiz musi zawierać przynajmniej jedno pytanie' })
+  }
+
+  if (!Array.isArray(userIds) || !Array.isArray(groupIds)) {
+    return res.status(400).json({ message: 'Lista użytkowników i grup jest nieprawidłowa' })
+  }
+
+  const normalizedQuestions = questions.map((question) => {
+    if (!question || typeof question !== 'object') {
+      return null
+    }
+
+    const options = Array.isArray(question.options) ? question.options.map((option) => String(option).trim()) : []
+    const correctAnswer = Number(question.correctAnswer)
+    if (
+      !question.question ||
+      !String(question.question).trim() ||
+      options.length !== 4 ||
+      options.some((option) => !option) ||
+      !Number.isInteger(correctAnswer) ||
+      correctAnswer < 0 ||
+      correctAnswer > 3
+    ) {
+      return null
+    }
+
+    return {
+      question: String(question.question).trim(),
+      options,
+      correctAnswer,
+    }
+  })
+
+  if (normalizedQuestions.some((question) => question === null)) {
+    return res.status(400).json({ message: 'Każde pytanie musi mieć treść, cztery odpowiedzi i poprawny numer odpowiedzi' })
+  }
+
+  const [quizzes, users, groups] = await Promise.all([
+    readJson(quizzesFile, defaultQuizzes),
+    readJson(usersFile, defaultUsers),
+    readJson(groupsFile, defaultGroups),
+  ])
+  const quiz = quizzes.find((entry) => entry.id === id)
+
+  if (!quiz) {
+    return res.status(404).json({ message: 'Quiz nie istnieje' })
+  }
+
+  const normalizedUserIds = [...new Set(userIds.map(String))]
+  const normalizedGroupIds = [...new Set(groupIds.map(String))]
+  const knownUserIds = new Set(users.map((user) => String(user.id)))
+  const knownGroupIds = new Set(groups.map((group) => String(group.id)))
+
+  if (
+    normalizedUserIds.some((userId) => !knownUserIds.has(userId)) ||
+    normalizedGroupIds.some((groupId) => !knownGroupIds.has(groupId))
+  ) {
+    return res.status(400).json({ message: 'Wybrany użytkownik lub grupa nie istnieje' })
+  }
+
+  quiz.name = String(name).trim()
+  quiz.questions = normalizedQuestions
+  quiz.assignedToUsers = normalizedUserIds
+  quiz.assignedToGroups = normalizedGroupIds
+  quiz.updatedAt = new Date().toISOString()
+
+  await writeJson(quizzesFile, quizzes)
+  return res.json({ quiz })
+})
+
+app.delete('/api/quizzes/:id', async (req, res) => {
+  const { id } = req.params
+  const quizzes = await readJson(quizzesFile, defaultQuizzes)
+  const filteredQuizzes = quizzes.filter((quiz) => quiz.id !== id)
+
+  if (filteredQuizzes.length === quizzes.length) {
+    return res.status(404).json({ message: 'Quiz nie istnieje' })
+  }
+
+  await writeJson(quizzesFile, filteredQuizzes)
+  return res.json({ message: 'Quiz usunięty' })
+})
+
 app.put('/api/quizzes/:id/toggle', async (req, res) => {
   const { id } = req.params
   const { enabled } = req.body || {}
@@ -453,7 +545,6 @@ app.put('/api/quizzes/:id/leaderboard-visibility', async (req, res) => {
 app.post('/api/quizzes/assign', async (req, res) => {
   const { quizId, userIds = [], groupIds = [] } = req.body || {}
   const quizzes = await readJson(quizzesFile, defaultQuizzes)
-  const groups = await readJson(groupsFile, defaultGroups)
 
   const quiz = quizzes.find((entry) => entry.id === quizId)
   if (!quiz) {
@@ -468,13 +559,6 @@ app.post('/api/quizzes/assign', async (req, res) => {
   const groupAssignments = new Set((quiz.assignedToGroups || []).map(String))
   for (const groupId of groupIds) {
     groupAssignments.add(String(groupId))
-  }
-
-  for (const groupId of groupIds) {
-    const group = groups.find((entry) => entry.id === groupId)
-    if (group) {
-      group.memberIds.forEach((userId) => nextAssignment.add(String(userId)))
-    }
   }
 
   quiz.assignedToUsers = [...nextAssignment]
