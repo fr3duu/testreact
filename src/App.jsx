@@ -179,6 +179,9 @@ function App() {
 	})
 	const [editingQuestionId, setEditingQuestionId] = useState(null)
 	const [questionSearch, setQuestionSearch] = useState('')
+	const [quizQuestionSearch, setQuizQuestionSearch] = useState('')
+	const [quizUserSearch, setQuizUserSearch] = useState('')
+	const [quizGroupSearch, setQuizGroupSearch] = useState('')
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
@@ -195,6 +198,34 @@ function App() {
 			return haystack.includes(query)
 		})
 	}, [questionLibrary, questionSearch])
+	const filteredQuizQuestions = useMemo(() => {
+		const query = quizQuestionSearch.trim().toLowerCase()
+		return availableQuestions
+			.map((question, originalIndex) => ({ question, originalIndex }))
+			.filter(({ question }) => {
+				if (!query) {
+					return true
+				}
+				const haystack = [question.question, ...(question.options || [])].join(' ').toLowerCase()
+				return haystack.includes(query)
+			})
+	}, [availableQuestions, quizQuestionSearch])
+	const filteredQuizUsers = useMemo(() => {
+		const query = quizUserSearch.trim().toLowerCase()
+		if (!query) {
+			return users
+		}
+
+		return users.filter((user) => user.username.toLowerCase().includes(query))
+	}, [users, quizUserSearch])
+	const filteredQuizGroups = useMemo(() => {
+		const query = quizGroupSearch.trim().toLowerCase()
+		if (!query) {
+			return groups
+		}
+
+		return groups.filter((group) => group.name.toLowerCase().includes(query))
+	}, [groups, quizGroupSearch])
 	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
 	const sortedQuizzes = useMemo(
 		() =>
@@ -655,7 +686,7 @@ function App() {
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
-				<p className="label">Fizyka kwantowa</p>
+				<p className="label">Piłkarski quiz</p>
 				<h1>Logowanie</h1>
 
 				<form onSubmit={handleLogin} className="form-stack">
@@ -1063,69 +1094,99 @@ function App() {
 								/>
 
 								<div className="question-selection">
-									{availableQuestions.map((question, index) => (
-										<label key={`${question.question}-${index}`} className="checkbox-row">
-											<input
-												type="checkbox"
-												checked={quizForm.selectedQuestionIds.includes(index)}
-												onChange={() => {
-													setQuizForm((prev) => {
-														const alreadySelected = prev.selectedQuestionIds.includes(index)
-														return {
-															...prev,
-															selectedQuestionIds: alreadySelected
-																? prev.selectedQuestionIds.filter((item) => item !== index)
-																: [...prev.selectedQuestionIds, index],
-														}
-													})
-												}}
-											/>
-											<span>{question.question}</span>
-										</label>
-									))}
+									<input
+										placeholder="Szukaj pytań"
+										value={quizQuestionSearch}
+										onChange={(event) => setQuizQuestionSearch(event.target.value)}
+										className="search-input"
+									/>
+									{filteredQuizQuestions.length === 0 ? (
+										<p className="empty-state">Brak pytań pasujących do wyszukiwania.</p>
+									) : (
+										filteredQuizQuestions.map(({ question, originalIndex }) => (
+											<label key={`${question.question}-${originalIndex}`} className="checkbox-row">
+												<input
+													type="checkbox"
+													checked={quizForm.selectedQuestionIds.includes(originalIndex)}
+													onChange={() => {
+														setQuizForm((prev) => {
+															const alreadySelected = prev.selectedQuestionIds.includes(originalIndex)
+															return {
+																...prev,
+																selectedQuestionIds: alreadySelected
+																	? prev.selectedQuestionIds.filter((item) => item !== originalIndex)
+																	: [...prev.selectedQuestionIds, originalIndex],
+															}
+														})
+													}}
+												/>
+												<span>{question.question}</span>
+											</label>
+										))
+									)}
 								</div>
 
 								<div className="assignment-grid">
 									<div>
 										<h3>Użytkownicy</h3>
-										{users.map((user) => (
-											<label key={user.id} className="checkbox-row small-row">
-												<input
-													type="checkbox"
-													checked={quizForm.assignToUsers.includes(user.id)}
-													onChange={() =>
-														setQuizForm((prev) => ({
-															...prev,
-															assignToUsers: prev.assignToUsers.includes(user.id)
-																? prev.assignToUsers.filter((id) => id !== user.id)
-																: [...prev.assignToUsers, user.id],
-														}))
-													}
-												/>
-												<span>{user.username}</span>
-											</label>
-										))}
+										<input
+											placeholder="Szukaj użytkowników"
+											value={quizUserSearch}
+											onChange={(event) => setQuizUserSearch(event.target.value)}
+											className="search-input"
+										/>
+										{filteredQuizUsers.length === 0 ? (
+											<p className="empty-state">Brak użytkowników pasujących do wyszukiwania.</p>
+										) : (
+											filteredQuizUsers.map((user) => (
+												<label key={user.id} className="checkbox-row small-row">
+													<input
+														type="checkbox"
+														checked={quizForm.assignToUsers.includes(user.id)}
+														onChange={() =>
+															setQuizForm((prev) => ({
+																...prev,
+																assignToUsers: prev.assignToUsers.includes(user.id)
+																	? prev.assignToUsers.filter((id) => id !== user.id)
+																	: [...prev.assignToUsers, user.id],
+															}))
+														}
+													/>
+													<span>{user.username}</span>
+												</label>
+											))
+										)}
 									</div>
 
 									<div>
 										<h3>Grupy</h3>
-										{groups.map((group) => (
-											<label key={group.id} className="checkbox-row small-row">
-												<input
-													type="checkbox"
-													checked={quizForm.assignToGroups.includes(group.id)}
-													onChange={() =>
-														setQuizForm((prev) => ({
-															...prev,
-															assignToGroups: prev.assignToGroups.includes(group.id)
-																? prev.assignToGroups.filter((id) => id !== group.id)
-																: [...prev.assignToGroups, group.id],
-														}))
-													}
-												/>
-												<span>{group.name}</span>
-											</label>
-										))}
+										<input
+											placeholder="Szukaj grup"
+											value={quizGroupSearch}
+											onChange={(event) => setQuizGroupSearch(event.target.value)}
+											className="search-input"
+										/>
+										{filteredQuizGroups.length === 0 ? (
+											<p className="empty-state">Brak grup pasujących do wyszukiwania.</p>
+										) : (
+											filteredQuizGroups.map((group) => (
+												<label key={group.id} className="checkbox-row small-row">
+													<input
+														type="checkbox"
+														checked={quizForm.assignToGroups.includes(group.id)}
+														onChange={() =>
+															setQuizForm((prev) => ({
+																...prev,
+																assignToGroups: prev.assignToGroups.includes(group.id)
+																	? prev.assignToGroups.filter((id) => id !== group.id)
+																	: [...prev.assignToGroups, group.id],
+															}))
+														}
+													/>
+													<span>{group.name}</span>
+												</label>
+											))
+										)}
 									</div>
 								</div>
 
