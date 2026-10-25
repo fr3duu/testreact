@@ -185,6 +185,7 @@ function App() {
 	const [quizQuestionSearch, setQuizQuestionSearch] = useState('')
 	const [quizUserSearch, setQuizUserSearch] = useState('')
 	const [quizGroupSearch, setQuizGroupSearch] = useState('')
+	const [userSearch, setUserSearch] = useState('')
 
 	const currentQuestion = questionList[currentIndex]
 	const canManageUsers = currentUser?.role === 'admin'
@@ -221,6 +222,14 @@ function App() {
 
 		return users.filter((user) => user.username.toLowerCase().includes(query))
 	}, [users, quizUserSearch])
+	const filteredUsers = useMemo(() => {
+		const query = userSearch.trim().toLowerCase()
+		if (!query) {
+			return users
+		}
+
+		return users.filter((user) => user.username.toLowerCase().includes(query))
+	}, [users, userSearch])
 	const filteredQuizGroups = useMemo(() => {
 		const query = quizGroupSearch.trim().toLowerCase()
 		if (!query) {
@@ -229,7 +238,19 @@ function App() {
 
 		return groups.filter((group) => group.name.toLowerCase().includes(query))
 	}, [groups, quizGroupSearch])
-	const topRecords = useMemo(() => [...records].filter((record) => record.showInLeaderboard !== false).sort((a, b) => b.score - a.score).slice(0, 10), [records])
+	const topRecords = useMemo(
+		() =>
+			[...records]
+				.filter(
+					(record) =>
+						!record.quizId &&
+						(!record.quizName || record.quizName === 'Quiz ogólny') &&
+						record.showInLeaderboard !== false,
+				)
+				.sort((a, b) => b.score - a.score)
+				.slice(0, 10),
+		[records],
+	)
 	const sortedQuizzes = useMemo(
 		() =>
 			[...quizzes].sort((a, b) => {
@@ -1113,8 +1134,18 @@ function App() {
 
 						<section className="admin-section">
 							<h2>Użytkownicy</h2>
+							<input
+								type="search"
+								placeholder="Szukaj użytkowników"
+								aria-label="Szukaj użytkowników"
+								value={userSearch}
+								onChange={(event) => setUserSearch(event.target.value)}
+								className="search-input"
+							/>
 							<div className="admin-user-list">
-								{users.map((user) => (
+								{filteredUsers.length === 0 ? (
+									<p className="empty-state">Brak użytkowników pasujących do wyszukiwania.</p>
+								) : filteredUsers.map((user) => (
 									<div key={user.id} className="admin-user-row">
 										<div>
 											<strong>{user.username}</strong>

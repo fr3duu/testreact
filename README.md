@@ -28,12 +28,12 @@ Gege Quiz to aplikacja webowa z quizami, rankingami i panelem administracyjnym. 
 - Rozwiązywanie quizów przypisanych bezpośrednio lub przez grupę.
 - Informacja o poprawnej i błędnej odpowiedzi po wyborze.
 - Zapis wyniku i czasu rozwiązywania.
-- Ranking ogólny oraz osobne zakładki rankingów poszczególnych quizów.
+- Ranking ogólny dla quizu ogólnego oraz osobne zakładki rankingów poszczególnych quizów ręcznych.
 - Wylogowanie i powrót do strony głównej.
 
 ### Dla administratora
 
-- Dodawanie i usuwanie użytkowników oraz zmiana ich haseł.
+- Dodawanie, wyszukiwanie i usuwanie użytkowników oraz zmiana ich haseł.
 - Tworzenie grup i zarządzanie członkostwem.
 - Tworzenie quizów z biblioteki pytań i przypisywanie ich użytkownikom lub grupom.
 - Edycja istniejących quizów: zmiana nazwy, pytań oraz przypisanych użytkowników i grup.
