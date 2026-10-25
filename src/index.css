@@ -1,13 +1,13 @@
 :root {
-  --text: #c1d2bd;
-  --text-h: #f4f8ee;
-  --bg: #071b13;
-  --border: rgba(183, 215, 173, 0.18);
-  --code-bg: #102c1e;
-  --accent: #a6e36f;
-  --accent-bg: rgba(166, 227, 111, 0.12);
-  --accent-border: rgba(166, 227, 111, 0.4);
-  --social-bg: rgba(22, 52, 36, 0.5);
+  --text: #454b46;
+  --text-h: #151a16;
+  --bg: #f5f7f5;
+  --border: #d9dfda;
+  --code-bg: #edf1ed;
+  --accent: #357a42;
+  --accent-bg: rgba(53, 122, 66, 0.1);
+  --accent-border: rgba(53, 122, 66, 0.4);
+  --social-bg: #edf1ed;
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
@@ -17,7 +17,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -32,15 +32,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #c1d2bd;
-    --text-h: #f4f8ee;
-    --bg: #071b13;
-    --border: rgba(183, 215, 173, 0.18);
-    --code-bg: #102c1e;
-    --accent: #a6e36f;
-    --accent-bg: rgba(166, 227, 111, 0.12);
-    --accent-border: rgba(166, 227, 111, 0.4);
-    --social-bg: rgba(22, 52, 36, 0.5);
+    --text: #454b46;
+    --text-h: #151a16;
+    --bg: #f5f7f5;
+    --border: #d9dfda;
+    --code-bg: #edf1ed;
+    --accent: #357a42;
+    --accent-bg: rgba(53, 122, 66, 0.1);
+    --accent-border: rgba(53, 122, 66, 0.4);
+    --social-bg: #edf1ed;
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -54,8 +54,8 @@
   font-family: Inter, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #e6f2e8;
-  background: #071b13;
+  color: #252b26;
+  background: #f5f7f5;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -77,9 +77,9 @@ body,
 body {
   min-width: 320px;
   background:
-    radial-gradient(ellipse at 50% -30%, rgba(97, 173, 92, 0.2), transparent 65%),
-    repeating-linear-gradient(90deg, rgba(28, 83, 51, 0.15) 0, rgba(28, 83, 51, 0.15) 12.5%, transparent 12.5%, transparent 25%),
-    linear-gradient(145deg, #071b13 0%, #0c281b 52%, #081b14 100%);
+    radial-gradient(ellipse at 50% -30%, rgba(79, 139, 88, 0.1), transparent 65%),
+    repeating-linear-gradient(90deg, rgba(53, 122, 66, 0.035) 0, rgba(53, 122, 66, 0.035) 12.5%, transparent 12.5%, transparent 25%),
+    linear-gradient(145deg, #ffffff 0%, #f1f4f1 52%, #f8faf8 100%);
 }
 
 #root {

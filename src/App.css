@@ -563,14 +563,14 @@ select:focus {
 }
 
 :root {
-  --pitch: #a6e36f;
-  --pitch-bright: #c5f28a;
-  --panel-bg: rgba(9, 31, 21, 0.91);
-  --panel-edge: rgba(168, 223, 142, 0.2);
-  --text-primary: #f4f8ee;
-  --text-secondary: #c1d2bd;
-  --surface: rgba(22, 52, 36, 0.78);
-  --surface-soft: rgba(16, 43, 29, 0.65);
+  --pitch: #3c8748;
+  --pitch-bright: #2f713c;
+  --panel-bg: #ffffff;
+  --panel-edge: #dce5dc;
+  --text-primary: #171c18;
+  --text-secondary: #505a52;
+  --surface: #f3f6f3;
+  --surface-soft: #f8faf8;
 }
 
 .screen-wrap {
@@ -600,12 +600,9 @@ select:focus {
   isolation: isolate;
   overflow: hidden;
   color: var(--text-secondary);
-  background:
-    linear-gradient(145deg, rgba(22, 52, 36, 0.35), transparent 48%),
-    var(--panel-bg);
+  background: var(--panel-bg);
   border-color: var(--panel-edge);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.045);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 64px rgba(21, 35, 24, 0.1), inset 0 1px #ffffff;
 }
 
 .panel::before {
@@ -615,25 +612,30 @@ select:focus {
   right: -66px;
   width: 190px;
   height: 190px;
-  border: 1px solid rgba(197, 242, 138, 0.13);
+  border: 1px solid rgba(53, 122, 66, 0.1);
   border-radius: 50%;
   background:
-    radial-gradient(circle at center, transparent 0 27%, rgba(197, 242, 138, 0.12) 27.5% 28%, transparent 28.5%),
-    linear-gradient(45deg, transparent 48%, rgba(197, 242, 138, 0.09) 49%, transparent 50%),
-    linear-gradient(-45deg, transparent 48%, rgba(197, 242, 138, 0.09) 49%, transparent 50%);
+    radial-gradient(circle at center, transparent 0 27%, rgba(53, 122, 66, 0.09) 27.5% 28%, transparent 28.5%),
+    linear-gradient(45deg, transparent 48%, rgba(53, 122, 66, 0.07) 49%, transparent 50%),
+    linear-gradient(-45deg, transparent 48%, rgba(53, 122, 66, 0.07) 49%, transparent 50%);
   content: '';
   pointer-events: none;
 }
 
 .label {
-  color: var(--pitch-bright);
+  color: #347640;
   letter-spacing: 0.16em;
 }
 
 .label::before {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
   margin-right: 8px;
-  content: '⚽';
-  letter-spacing: normal;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: radial-gradient(circle, currentColor 0 2px, transparent 2.5px);
+  content: '';
 }
 
 h1,
@@ -659,19 +661,19 @@ h1,
 input,
 select {
   color: var(--text-primary);
-  background: rgba(4, 20, 13, 0.68);
-  border-color: rgba(183, 215, 173, 0.2);
+  background: #ffffff;
+  border-color: #d4ddd5;
   border-radius: 12px;
 }
 
 input::placeholder {
-  color: rgba(193, 210, 189, 0.56);
+  color: #818a83;
 }
 
 input:focus,
 select:focus {
-  border-color: rgba(197, 242, 138, 0.82);
-  box-shadow: 0 0 0 3px rgba(166, 227, 111, 0.14);
+  border-color: #43864d;
+  box-shadow: 0 0 0 3px rgba(53, 122, 66, 0.13);
 }
 
 button {
@@ -679,18 +681,18 @@ button {
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(197, 242, 138, 0.85);
+  outline: 3px solid #43864d;
   outline-offset: 3px;
 }
 
 .primary-btn {
-  color: #102316;
-  background: linear-gradient(135deg, #c5f28a, #8ed15b);
-  box-shadow: 0 10px 28px rgba(119, 190, 75, 0.2), inset 0 1px rgba(255, 255, 255, 0.45);
+  color: #ffffff;
+  background: #357a42;
+  box-shadow: 0 8px 20px rgba(53, 122, 66, 0.18);
 }
 
 .primary-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d1f79c, #a1e36c);
+  background: #2b6636;
   transform: translateY(-2px);
 }
 
@@ -702,19 +704,19 @@ button:focus-visible {
 .secondary-btn,
 .tab-btn {
   color: var(--text-primary);
-  background: rgba(172, 205, 163, 0.07);
-  border-color: rgba(183, 215, 173, 0.18);
+  background: #f0f3f0;
+  border-color: #d6ddd7;
 }
 
 .secondary-btn:hover,
 .tab-btn:hover {
-  background: rgba(172, 205, 163, 0.13);
-  border-color: rgba(197, 242, 138, 0.38);
+  background: #e7eee7;
+  border-color: #9cb99f;
 }
 
 .quiz-header {
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(183, 215, 173, 0.14);
+  border-bottom: 1px solid #e1e6e1;
 }
 
 .answers-grid {
@@ -724,30 +726,30 @@ button:focus-visible {
 .answer-btn {
   color: var(--text-primary);
   background: var(--surface);
-  border-color: rgba(183, 215, 173, 0.18);
+  border-color: #dce3dc;
 }
 
 .answer-btn:hover:not(:disabled) {
-  background: rgba(47, 83, 54, 0.86);
-  border-color: rgba(197, 242, 138, 0.48);
+  background: #e9f1e9;
+  border-color: #6c9a71;
 }
 
 .answer-btn.selected {
   color: var(--text-primary);
-  background: rgba(119, 190, 75, 0.16);
+  background: #e5f0e5;
   border-color: var(--pitch);
 }
 
 .answer-btn.correct {
-  color: #eaffd9;
-  background: rgba(74, 155, 67, 0.2);
-  border-color: #8ddd6d;
+  color: #20572b;
+  background: #e5f1e5;
+  border-color: #5c965f;
 }
 
 .answer-btn.wrong {
-  color: #ffe3da;
-  background: rgba(175, 72, 52, 0.2);
-  border-color: #e6876e;
+  color: #303630;
+  background: #eef0ee;
+  border-color: #8b938b;
 }
 
 .records-list li,
@@ -758,7 +760,7 @@ button:focus-visible {
 .question-card {
   color: var(--text-secondary);
   background: var(--surface);
-  border-color: rgba(183, 215, 173, 0.15);
+  border-color: #dce3dc;
   border-radius: 13px;
 }
 
@@ -777,28 +779,28 @@ button:focus-visible {
 }
 
 .admin-section {
-  border-top-color: rgba(183, 215, 173, 0.16);
+  border-top-color: #e0e5e0;
 }
 
 .tab-btn.active {
-  color: #102316;
-  background: linear-gradient(135deg, #c5f28a, #8ed15b);
-  border-color: transparent;
+  color: #ffffff;
+  background: #357a42;
+  border-color: #357a42;
 }
 
 .notice-box {
-  background: rgba(166, 227, 111, 0.08);
-  border-color: rgba(166, 227, 111, 0.24);
+  background: #f0f5f0;
+  border-color: #d5e4d6;
 }
 
 .notice-title {
-  color: var(--pitch-bright);
+  color: #347640;
 }
 
 .quiz-notice-btn {
   color: var(--text-primary);
   background: var(--surface);
-  border-color: rgba(166, 227, 111, 0.35);
+  border-color: #a9c9ad;
 }
 
 .group-card,
@@ -807,13 +809,13 @@ button:focus-visible {
 }
 
 .member-badge {
-  color: #e8f7df;
-  background: rgba(166, 227, 111, 0.12);
+  color: #2f5735;
+  background: #e8f1e8;
 }
 
 .question-selection {
-  background: rgba(4, 20, 13, 0.4);
-  border-color: rgba(183, 215, 173, 0.13);
+  background: #f7f9f7;
+  border-color: #e0e6e0;
 }
 
 .checkbox-row {
@@ -821,26 +823,44 @@ button:focus-visible {
 }
 
 .checkbox-row input {
-  accent-color: #a6e36f;
+  accent-color: #357a42;
 }
 
 .status-badge.enabled {
-  color: #d7f7c2;
-  background: rgba(111, 190, 79, 0.14);
-  border-color: rgba(166, 227, 111, 0.35);
+  color: #2f713c;
+  background: #eaf3ea;
+  border-color: #c6ddc8;
+}
+
+.status-badge.disabled {
+  color: #4e554f;
+  background: #eef0ee;
+  border-color: #d7dbd7;
 }
 
 .danger-btn {
-  color: #ffd5cb;
-  background: rgba(164, 65, 48, 0.22);
+  color: #ffffff;
+  background: #4c524d;
 }
 
 .danger-btn:hover {
-  background: rgba(184, 73, 52, 0.34);
+  background: #343a35;
 }
 
 .error-text {
-  color: #ffb5a2;
+  color: #333a34;
+}
+
+.result-score,
+.empty-state,
+.score,
+.admin-user-row span,
+.quiz-card p {
+  color: #505a52;
+}
+
+.result-score strong {
+  color: #171c18;
 }
 
 @media (max-width: 600px) {
