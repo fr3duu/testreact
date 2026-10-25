@@ -269,7 +269,7 @@ app.put('/api/users/:id', async (req, res) => {
   const { password, role } = req.body || {}
   const users = await readJson(usersFile, defaultUsers)
 
-  const index = users.findIndex((user) => user.id === id)
+  const index = users.findIndex((user) => String(user.id) === id)
   if (index === -1) {
     return res.status(404).json({ message: 'Użytkownik nie istnieje' })
   }
@@ -291,7 +291,7 @@ app.put('/api/users/:id', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params
   const users = await readJson(usersFile, defaultUsers)
-  const filtered = users.filter((user) => user.id !== id)
+  const filtered = users.filter((user) => String(user.id) !== id)
 
   if (filtered.length === users.length) {
     return res.status(404).json({ message: 'Użytkownik nie istnieje' })
