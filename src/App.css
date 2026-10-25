@@ -580,21 +580,6 @@ select:focus {
   padding: clamp(16px, 4vw, 40px);
 }
 
-.screen-wrap::before {
-  position: absolute;
-  z-index: -1;
-  width: min(86vw, 1000px);
-  height: min(64vh, 620px);
-  min-height: 380px;
-  border: 1px solid rgba(208, 239, 193, 0.1);
-  border-radius: 48%;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 1px), rgba(208, 239, 193, 0.08) 50%, transparent calc(50% + 1px)),
-    radial-gradient(ellipse at center, transparent 0 17%, rgba(208, 239, 193, 0.08) 17.1% 17.3%, transparent 17.4%);
-  content: '';
-  pointer-events: none;
-}
-
 .panel {
   position: relative;
   isolation: isolate;
@@ -754,8 +739,8 @@ button:focus-visible {
 
 .login-ball-art {
   display: block;
-  width: min(100%, 360px);
-  height: 150px;
+  width: 140px;
+  height: 140px;
   margin: -8px auto 20px;
   object-fit: contain;
 }
@@ -872,10 +857,7 @@ button:focus-visible {
 }
 
 body {
-  background:
-    radial-gradient(ellipse at 50% -30%, rgba(79, 139, 88, 0.08), transparent 65%),
-    repeating-linear-gradient(90deg, rgba(53, 82, 56, 0.035) 0, rgba(53, 82, 56, 0.035) 12.5%, transparent 12.5%, transparent 25%),
-    linear-gradient(145deg, #e5e9e5 0%, #dfe4df 52%, #e9ece9 100%);
+  background: #173c25 url('/football-pitch.svg') center / cover fixed no-repeat;
 }
 
 @media (max-width: 600px) {

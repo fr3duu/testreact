@@ -407,6 +407,7 @@ app.post('/api/quizzes', async (req, res) => {
     assignedToGroups: [],
     completedBy: [],
     enabled: true,
+    showInLeaderboard: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -428,6 +429,22 @@ app.put('/api/quizzes/:id/toggle', async (req, res) => {
   }
 
   quiz.enabled = enabled !== false
+  quiz.updatedAt = new Date().toISOString()
+  await writeJson(quizzesFile, quizzes)
+  return res.json({ quiz })
+})
+
+app.put('/api/quizzes/:id/leaderboard-visibility', async (req, res) => {
+  const { id } = req.params
+  const { showInLeaderboard } = req.body || {}
+  const quizzes = await readJson(quizzesFile, defaultQuizzes)
+  const quiz = quizzes.find((entry) => entry.id === id)
+
+  if (!quiz) {
+    return res.status(404).json({ message: 'Quiz nie istnieje' })
+  }
+
+  quiz.showInLeaderboard = showInLeaderboard !== false
   quiz.updatedAt = new Date().toISOString()
   await writeJson(quizzesFile, quizzes)
   return res.json({ quiz })

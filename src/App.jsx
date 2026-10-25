@@ -596,13 +596,12 @@ function App() {
 
 	const handleQuizLeaderboardToggle = async (quizId, showInLeaderboard) => {
 		try {
-			await apiRequest(`/records/quiz/${quizId}/visibility`, {
+			const response = await apiRequest(`/quizzes/${quizId}/leaderboard-visibility`, {
 				method: 'PUT',
 				body: JSON.stringify({ showInLeaderboard }),
 			})
 
-			setRecords((prev) => prev.map((record) => (record.quizId === quizId ? { ...record, showInLeaderboard } : record)))
-			await refreshAdminData()
+			setQuizzes((prev) => prev.map((quiz) => (quiz.id === quizId ? response.quiz : quiz)))
 		} catch (error) {
 			setErrorMessage(error.message)
 		}
@@ -856,7 +855,7 @@ function App() {
 						Główny ranking
 					</button>
 					{quizzes
-						.filter((quiz) => records.some((record) => record.quizId === quiz.id))
+						.filter((quiz) => quiz.showInLeaderboard !== false && records.some((record) => record.quizId === quiz.id))
 						.map((quiz) => (
 						<button
 							key={quiz.id}
@@ -885,7 +884,7 @@ function App() {
 					)
 				) : (
 					(() => {
-						const selectedQuizRecords = records.filter((record) => record.quizId === recordTab && record.showInLeaderboard !== false)
+						const selectedQuizRecords = records.filter((record) => record.quizId === recordTab)
 						return selectedQuizRecords.length === 0 ? (
 							<p className="empty-state">Brak wyników dla tego quizu.</p>
 						) : (
@@ -1245,7 +1244,7 @@ function App() {
 								<div className="record-toggle-list">
 									{quizzes.map((quiz) => {
 										const totalQuizRecords = records.filter((record) => record.quizId === quiz.id)
-										const hasVisibleRecords = totalQuizRecords.some((record) => record.showInLeaderboard !== false)
+										const isLeaderboardVisible = quiz.showInLeaderboard !== false
 
 										return (
 											<div key={quiz.id} className="record-toggle-row">
@@ -1253,16 +1252,16 @@ function App() {
 													<strong>{quiz.name}</strong>
 													<p>Aktywny: {quiz.enabled === false ? 'Nie' : 'Tak'}</p>
 													<p>
-														Ranking: {hasVisibleRecords ? 'Widoczny' : 'Ukryty'}
+														Zakładka rankingu: {isLeaderboardVisible ? 'Widoczna' : 'Ukryta'}
 														{totalQuizRecords.length > 0 ? ` (${totalQuizRecords.length} wyników)` : ' (brak wyników)'}
 													</p>
 												</div>
 												<button
 													type="button"
-													className={hasVisibleRecords ? 'secondary-btn small' : 'primary-btn small'}
-													onClick={() => handleQuizLeaderboardToggle(quiz.id, !hasVisibleRecords)}
+													className={isLeaderboardVisible ? 'secondary-btn small' : 'primary-btn small'}
+													onClick={() => handleQuizLeaderboardToggle(quiz.id, !isLeaderboardVisible)}
 												>
-													{hasVisibleRecords ? 'Ukryj ranking' : 'Pokaż ranking'}
+													{isLeaderboardVisible ? 'Ukryj zakładkę' : 'Pokaż zakładkę'}
 												</button>
 											</div>
 										)

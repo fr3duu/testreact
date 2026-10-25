@@ -76,10 +76,7 @@ body,
 
 body {
   min-width: 320px;
-  background:
-    radial-gradient(ellipse at 50% -30%, rgba(79, 139, 88, 0.08), transparent 65%),
-    repeating-linear-gradient(90deg, rgba(53, 82, 56, 0.035) 0, rgba(53, 82, 56, 0.035) 12.5%, transparent 12.5%, transparent 25%),
-    linear-gradient(145deg, #e5e9e5 0%, #dfe4df 52%, #e9ece9 100%);
+  background: #173c25 url('/football-pitch.svg') center / cover fixed no-repeat;
 }
 
 #root {

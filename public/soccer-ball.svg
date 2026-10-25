@@ -1,23 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 200" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="165 18 150 146" fill="none">
   <defs>
-    <linearGradient id="field" x1="240" y1="24" x2="240" y2="190" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F5F7F5"/>
-      <stop offset="1" stop-color="#DDE6DE"/>
-    </linearGradient>
     <radialGradient id="ball" cx="0" cy="0" r="1" gradientTransform="matrix(0 70 -70 0 239 87)" gradientUnits="userSpaceOnUse">
       <stop stop-color="#fff"/>
       <stop offset=".78" stop-color="#F5F6F4"/>
       <stop offset="1" stop-color="#C8CEC9"/>
     </radialGradient>
-    <linearGradient id="shadow" x1="175" y1="168" x2="306" y2="168" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#424A43" stop-opacity=".04"/>
-      <stop offset=".5" stop-color="#202820" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#424A43" stop-opacity=".04"/>
-    </linearGradient>
   </defs>
-  <rect x="12" y="34" width="456" height="154" rx="12" fill="url(#field)" stroke="#BFCBC0" stroke-width="2"/>
-  <path d="M240 35v152m-1-75a37 37 0 1 0 0 1m0-1a37 37 0 1 1 0-1M13 73h45a28 28 0 0 1 28 28v20a28 28 0 0 1-28 28H13m454-76h-45a28 28 0 0 0-28 28v20a28 28 0 0 0 28 28h45" stroke="#91A994" stroke-width="2" opacity=".8"/>
-  <ellipse cx="240" cy="168" fill="url(#shadow)" rx="68" ry="11"/>
   <circle cx="240" cy="91" r="65" fill="url(#ball)" stroke="#ABB3AC" stroke-width="2"/>
   <path d="m240 54 19 14-7 22h-24l-7-22 19-14Zm-41 17 22 1 7 22-18 14-20-12 9-25Zm82 0 9 25-20 12-18-14 7-22 22-1Zm-54 47 20-14 20 14-8 23h-24l-8-23Zm-37-7 20 12 3 23-19 7-17-18 13-24Zm100 0 13 24-17 18-19-7 3-23 20-12Zm-50 35h24l10 17a65 65 0 0 1-68 0l10-17h24Z" fill="#242A25" stroke="#242A25" stroke-linejoin="round" stroke-width="2"/>
   <path d="M206 42a61 61 0 0 1 56 4" stroke="#fff" stroke-linecap="round" stroke-width="4" opacity=".8"/>

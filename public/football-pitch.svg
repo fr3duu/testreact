@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="grass" x1="800" y1="0" x2="800" y2="1000" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#236b3a"/>
+      <stop offset="1" stop-color="#164b2b"/>
+    </linearGradient>
+    <pattern id="mow" width="320" height="1000" patternUnits="userSpaceOnUse">
+      <path fill="#fff" fill-opacity=".035" d="M0 0h160v1000H0z"/>
+    </pattern>
+    <pattern id="net" width="18" height="18" patternUnits="userSpaceOnUse">
+      <path d="M0 0h18v18H0zM0 0l18 18M18 0 0 18" stroke="#fff" stroke-opacity=".3" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <path fill="url(#grass)" d="M0 0h1600v1000H0z"/>
+  <path fill="url(#mow)" d="M0 0h1600v1000H0z"/>
+  <g stroke="#fff" stroke-opacity=".42" stroke-width="5">
+    <path d="M100 100h1400v800H100z"/>
+    <path d="M800 100v800"/>
+    <circle cx="800" cy="500" r="112"/>
+    <circle cx="800" cy="500" r="5" fill="#fff"/>
+    <path d="M100 290h144a80 80 0 0 1 80 80v260a80 80 0 0 1-80 80H100m1400-420h-144a80 80 0 0 0-80 80v260a80 80 0 0 0 80 80h144"/>
+    <path d="M100 390h52a38 38 0 0 1 38 38v144a38 38 0 0 1-38 38h-52m1400-220h-52a38 38 0 0 0-38 38v144a38 38 0 0 0 38 38h52"/>
+    <path d="M100 445h-36v110h36m1400-110h36v110h-36"/>
+  </g>
+  <g fill="url(#net)" stroke="#fff" stroke-opacity=".65" stroke-width="4">
+    <path d="M20 430h44v140H20z"/>
+    <path d="M1536 430h44v140h-44z"/>
+  </g>
+  <g stroke="#fff" stroke-opacity=".4" stroke-width="3">
+    <path d="M20 430 64 448m-44 0 44 18m-44 0 44 18m-44 0 44 18m-44 0 44 18m-44 0 44 18m-44 0 44 18m-44 0 44 18m-44 0 44 18"/>
+    <path d="m1580 430-44 18m44 0-44 18m44 0-44 18m44 0-44 18m44 0-44 18m44 0-44 18m44 0-44 18m44 0-44 18"/>
+  </g>
+</svg>
