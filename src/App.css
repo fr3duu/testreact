@@ -747,9 +747,17 @@ button:focus-visible {
 }
 
 .answer-btn.wrong {
-  color: #303630;
-  background: #eef0ee;
-  border-color: #8b938b;
+  color: #7f1d1d;
+  background: #fce8e6;
+  border-color: #d95f57;
+}
+
+.login-ball-art {
+  display: block;
+  width: min(100%, 360px);
+  height: 150px;
+  margin: -8px auto 20px;
+  object-fit: contain;
 }
 
 .records-list li,
@@ -861,6 +869,13 @@ button:focus-visible {
 
 .result-score strong {
   color: #171c18;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% -30%, rgba(79, 139, 88, 0.08), transparent 65%),
+    repeating-linear-gradient(90deg, rgba(53, 82, 56, 0.035) 0, rgba(53, 82, 56, 0.035) 12.5%, transparent 12.5%, transparent 25%),
+    linear-gradient(145deg, #e5e9e5 0%, #dfe4df 52%, #e9ece9 100%);
 }
 
 @media (max-width: 600px) {

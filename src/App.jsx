@@ -686,6 +686,7 @@ function App() {
 	const renderLogin = () => (
 		<div className="screen-wrap">
 			<div className="panel">
+				<img className="login-ball-art" src="/soccer-ball.svg" alt="Piłka nożna na boisku" />
 				<p className="label">Piłkarski quiz</p>
 				<h1>Logowanie</h1>
 
